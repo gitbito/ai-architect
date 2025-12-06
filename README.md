@@ -146,8 +146,6 @@ You can integrate AI Architect via MCP server (Model Context Protocol) to connec
    - **Bitbucket API Token:** To use Bitbucket repositories with AI Architect, an API token is required.
      - **[View Guide](https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/)**
 
-<br />
-
 ### 2.2 System requirements
 
 The AI Architect supports the following operating systems:
