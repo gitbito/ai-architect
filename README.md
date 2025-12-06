@@ -90,7 +90,7 @@ Bito’s **[AI Architect](https://bito.ai/product/ai-architect/)** builds a know
 
 Bito provides this in a completely secure fashion, with the AI Architect available on-prem if you desire, and no AI is trained on your code.
 
-We suggest you use Anthropic AND Grok as your LLMs as that provides the best coverage and the best cost of indexing. It will cost you approximately USD$0.20 - 0.40 per MB of indexable code (we do not index binaries, TARs, zips, images, etc). If you do not provide a Grok key, your indexing costs will be significantly higher, approximately USD$1.00 - $1.50 per MB of indexable code.
+We suggest you provide API keys for both Anthropic and Grok LLMs, as that provides the best coverage and the best cost of indexing. Bito will use Claude Haiku and Grok Code Fast together to index your codebase. It will cost you approximately USD $0.20 - $0.40 per MB of indexable code (we do not index binaries, TARs, zips, images, etc). If you provide only an Anthropic key without Grok, your indexing costs will be significantly higher, approximately USD $1.00 - $1.50 per MB of indexable code.
 
 ### 1.1 Key capabilities of the AI Architect include:
 
