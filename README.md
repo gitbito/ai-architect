@@ -388,6 +388,45 @@ Add these flags to any command:
 
 ## 9. Troubleshooting guide
 
+### 9.1 Services not starting
+
+```bash
+# Check setup log
+tail -f setup.log
+
+# View service logs
+bitoarch platform logs
+```
+
+### 9.2 Port conflicts
+
+Before running setup, edit `.env.default`:
+
+```bash
+vim .env.default
+# Change: CIS_PROVIDER_EXTERNAL_PORT, CIS_MANAGER_EXTERNAL_PORT, etc.
+```
+
+### 9.3 Indexing issues
+
+```bash
+# Check manager status
+bitoarch manager status --raw
+
+# View manager logs
+bitoarch platform logs cis-manager
+```
+
+### 9.4 Reset installation
+
+```bash
+# Complete clean (removes all data and configuration)
+./setup.sh --clean
+
+# Then run setup again
+./setup.sh
+```
+
 <br />
 
 <!-- Support & contact -->
