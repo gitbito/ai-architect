@@ -267,7 +267,7 @@ bitoarch manager status
 - `completed` - All repositories indexed
 - `failed` - Check logs for errors
 
-## 4.7 Use AI Architect in your coding agents
+### 4.7 Use AI Architect in your coding agents
 
 Configure MCP server in supported AI coding tools such as Claude Code, Cursor, Windsurf, and GitHub Copilot (VS Code).
 
@@ -278,7 +278,7 @@ Select your AI coding tool from the options below and follow the step-by-step in
 - [Guide for Windsurf](https://docs.bito.ai/ai-architect/guide-for-windsurf)
 - [Guide for GitHub Copilot (VS Code)](https://docs.bito.ai/ai-architect/guide-for-github-copilot-vs-code)
 
-## 4.8 Update repository list and re-index
+### 4.8 Update repository list and re-index
 
 Edit `config.yaml` file to add/remove repositories:
 
@@ -330,7 +330,7 @@ bitoarch manager sync
 
 Quick reference to CLI commands for managing your AI Architect.
 
-## 8.1 Platform status commands
+### 8.1 Platform status commands
 
 | Command                                  | Description              | Example                             |
 | ---------------------------------------- | ------------------------ | ----------------------------------- |
@@ -338,7 +338,7 @@ Quick reference to CLI commands for managing your AI Architect.
 | `bitoarch platform info`                 | Get platform details     | Version, ports, resource usage      |
 | `bitoarch platform rotate-token <token>` | Rotate MCP access token  | Updates token and restarts provider |
 
-## 8.2 Configuration management
+### 8.2 Configuration management
 
 | Command                                   | Description                 | Example                                   |
 | ----------------------------------------- | --------------------------- | ----------------------------------------- |
@@ -346,14 +346,14 @@ Quick reference to CLI commands for managing your AI Architect.
 | `bitoarch config repo get`                | Get current configuration   | `bitoarch config repo get`                |
 | `bitoarch config repo update <yaml-file>` | Update configuration        | `bitoarch config repo update config.yaml` |
 
-## 8.3 Workspace synchronization
+### 8.3 Workspace synchronization
 
 | Command                   | Description                | Example                                |
 | ------------------------- | -------------------------- | -------------------------------------- |
 | `bitoarch manager status` | Check indexing/sync status | Get current sync status                |
 | `bitoarch manager sync`   | Simple workspace sync      | Triggers sync for configured workspace |
 
-## 8.4 MCP operations
+### 8.4 MCP operations
 
 | Command                              | Description              | Example                            |
 | ------------------------------------ | ------------------------ | ---------------------------------- |
@@ -371,7 +371,7 @@ Quick reference to CLI commands for managing your AI Architect.
 
 **MCP resources:** Resources represent data sources for repository information. Use `bitoarch provider mcp resources` to see available resource URIs dynamically fetched from the server.
 
-## 8.5 Output options
+### 8.5 Output options
 
 Add these flags to any command:
 
