@@ -44,34 +44,34 @@
   <summary>Table of contents</summary>
   <ol>
     <li>
-      <a href="#overview">Overview</a>
+      <a href="#1-overview">Overview</a>
     </li>
     <li>
-      <a href="#Prerequisites">Prerequisites</a>
+      <a href="#2-prerequisites">Prerequisites</a>
     </li>
     <li>
-      <a href="#installation-options">Installation options</a>
+      <a href="#3-installation-options">Installation options</a>
     </li>
     <li>
-      <a href="#installation-instructions">Installation instructions</a>
+      <a href="#4-installation-instructions">Installation instructions</a>
     </li>
     <li>
-      <a href="#configuration-management">Configuration management</a>
+      <a href="#5-configuration-management">Configuration management</a>
     </li>
     <li>
-      <a href="#indexing-repositories">Indexing repositories</a>
+      <a href="#6-indexing-repositories">Indexing repositories</a>
     </li>
     <li>
-      <a href="#mcp-configuration">MCP configuration</a>
+      <a href="#7-mcp-configuration">MCP configuration</a>
     </li>
     <li>
-      <a href="#command-reference">Command reference</a>
+      <a href="#8-command-reference">Command reference</a>
     </li>
     <li>
-      <a href="#troubleshooting-guide">Troubleshooting guide</a>
+      <a href="#9-troubleshooting-guide">Troubleshooting guide</a>
     </li>
     <li>
-      <a href="#support-contact">Support & contact</a>
+      <a href="#10-support--contact">Support & contact</a>
     </li>
   </ol>
 </details>
@@ -221,7 +221,7 @@ cd bito-cis-*
   - Bitbucket
 - **Git Access Token** (required) - Personal access token for your Git provider
 
-**Note:** Refer to the [Prerequisites section](#prerequisites) for details on how to obtain these.
+**Note:** Refer to the [Prerequisites section](#2-prerequisites) for details on how to obtain these.
 
 **Note:** Once the setup is complete, your **Bito MCP URL** and **Bito MCP Access Token** will be displayed. Make sure to store them in a safe place, you'll need them later when configuring MCP server in your AI coding agent (e.g., Claude Code, Cursor, Windsurf, GitHub Copilot (VS Code), etc.).
 
