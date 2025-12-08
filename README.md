@@ -90,36 +90,40 @@ Bito’s **[AI Architect](https://bito.ai/product/ai-architect/)** builds a know
 
 Bito provides this in a completely secure fashion, with the AI Architect available on-prem if you desire, and no AI is trained on your code.
 
-We suggest you provide API keys for both Anthropic and Grok LLMs, as that provides the best coverage and the best cost of indexing. Bito will use Claude Haiku and Grok Code Fast together to index your codebase. It will cost you approximately USD $0.20 - $0.40 per MB of indexable code (we do not index binaries, TARs, zips, images, etc). If you provide only an Anthropic key without Grok, your indexing costs will be significantly higher, approximately USD $1.00 - $1.50 per MB of indexable code.
+---
 
-### 1.1 Key capabilities of the AI Architect include:
+### Key capabilities
 
-- **Grounded 1-shot production-ready code** — The AI Architect learns all your services, endpoints, code usage examples, and architectural patterns. The agent automatically feeds those to your coding agent (Claude Code, Cursor, Codex, any MCP client) to provide it the necessary information to quickly and efficiently create production ready code.
+| Feature                              | Description |
+|--------------------------------------|-------------|
+| Grounded 1-shot production-ready code | Learns your services, endpoints, usage examples, and patterns, then feeds them to coding agents to generate production-ready code. |
+| Consistent design adherence          | Ensures generated code follows your architecture patterns and coding conventions. |
+| Triaging production issues           | Quickly finds root causes from errors, logs, and other signals. |
+| Faster onboarding                    | Helps new engineers or AI agents understand system structure faster. |
+| Enhanced documentation & diagramming | Improves documentation using internal understanding of module and API connections. |
+| Smarter code reviews                 | Performs reviews with full system-wide awareness of dependencies and impacts. |
 
-- **Consistent design adherence** — Code generated aligns with your architecture patterns and coding conventions.
+---
 
-- **Triaging production issues** — easily and quickly find root causes to production issues based on errors/logs/etc.
+### AI Architect deployment, usage, and pricing 
 
-- **Faster onboarding** — new engineers or AI agents can quickly understand how a system or component system structure.
+You can choose to deploy and manage AI Architect in your own infrastructure with your own LLM keys, or let Bito host and manage it in the Bito cloud. An **on-prem deployment with an LLM access key is limited to a maximum of 5 developers**.  AI Architect can be deployed in three different configurations depending on your team size, infrastructure, and management requirements:
 
-- **Enhanced documentation and diagramming** — through its internal understanding of interconnections between modules and APIs.
+- **Personal deployment (Free with your LLM key):** Set up AI Architect on your local machine for individual development work. You'll provide your own LLM API keys for indexing, giving you complete control over the AI models used and associated costs.
 
-- **Smarter code reviews** — reviews with system-wide awareness of dependencies and impacts.
+- **Team deployment (Free with your LLM key for up to 5 users):** Deploy AI Architect on a shared server within your infrastructure with HTTPS access, allowing multiple team members to connect their AI coding tools to the same MCP server. Each team member can configure AI Architect with their preferred AI coding agent while sharing the same indexed codebase knowledge graph.
 
-### 1.2 How you can use AI Architect
+- **Enterprise deployment (For teams with more than five developers, requires Bito Enterprise Plan):** Deploy AI Architect in your infrastructure, with the option to use Bito's LLM infrastructure.
 
-AI Architect is designed to be flexible and can power multiple use cases across different AI coding tools and workflows.
+> **ℹ️ Usage & Pricing**
+>
+> Teams of up to five members can use AI Architect for free with their preferred coding agents by using their own LLM API keys. Larger teams require **[Bito Enterprise Plan](https://bito.ai/pricing/)**, which includes bundled LLM tokens. Further, if you want to power Bito Code Review Agent with AI Architect, you will need Bito Enterprise Plan regardless of the size of the team. 
+>
+> For the best cost and model coverage, we recommend adding both Anthropic and Grok API keys. AI Architect uses Claude Haiku and Grok Code Fast together to index your codebase.
+>
+> With both keys, indexing costs are typically **$0.20–$0.40 per MB** of indexable code (source files only; binaries, archives, and images are skipped). If only an Anthropic key is provided, indexing costs rise to **$1.00–$1.50 per MB**.
 
-You can integrate AI Architect via MCP server (Model Context Protocol) to connect with tools like Claude Code, Cursor, Windsurf, GitHub Copilot (VS Code), and more. It helps these tools understand your codebase and workflows better, resulting in more accurate and reliable suggestions.
-
-**AI Architect can be deployed in two ways:**
-
-1. **On-premises deployment** – Install and run AI Architect on your own infrastructure.
-
-   - See the installation instructions given below.
-
-2. **Bito-hosted version** – Use the hosted version managed by Bito.
-   - Contact [support@bito.ai](mailto:support@bito.ai) for a trial
+Please feel free to contact us at support@bito.ai to subscribe to the Bito Enterprise Plan for your on-prem deployment or have Bito manage the AI Architect.  
 
 <br />
 
@@ -127,26 +131,23 @@ You can integrate AI Architect via MCP server (Model Context Protocol) to connec
 
 ## 2. Prerequisites
 
-### 2.1 Required accounts and tokens
+Before you start the AI Architect setup in your environment, make sure you have the following ready:
 
-1. **Bito API Key:** This is your **Bito Access Key**, which you can obtain from the **[Bito Cloud settings](https://alpha.bito.ai/home/advanced)**.
+### **LLM API Keys**
+Required for personal use of AI Architect. Supports **Anthropic (Claude)** and **Grok** models. Add both keys for the best cost and coverage.
 
-   - **[View Guide](https://docs.bito.ai/help/account-and-settings/access-key)**
+### **Bito Access Key**
+You’ll need a **Bito account** and a **Bito Access Key** to authenticate AI Architect. You can sign up for a Bito account at https://alpha.bito.ai, and create an access key from Settings -> Advanced Settings **[Link](https://alpha.bito.ai/home/advanced)**. 
 
-2. **Git provider:** We support GitHub, GitLab, and Bitbucket. So, you'll need an account on one of these Git providers to index your repositories with AI Architect.
+### **Git Access Token**
+Used by AI Architect to read and index your repositories. Bito supports **GitHub**, **GitLab**, and **Bitbucket**.
+- **GitHub classic Token with `repo` access**  Fine-grained tokens are not supported. [Learn more](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic)  
+- **GitLab token with `api` scope)** [Learn more](https://docs.gitlab.com/user/profile/personal_access_tokens/#create-a-personal-access-token)
+- **Bitbucket API Token**  [Learn more](https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/)
 
-3. **Git Access Token:** A personal access token from your chosen Git provider is required. You'll use this token to allow AI Architect to read and index your repositories.
+---
 
-   - **GitHub Personal Access Token (Classic):** To use GitHub repositories with AI Architect, ensure you have a CLASSIC personal access token with repo access. We do not support fine-grained tokens currently.
-
-     - **[View Guide](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic)**
-
-   - **GitLab Personal Access Token:** To use GitLab repositories with AI Architect, a token with API access is required.
-     - **[View Guide](https://docs.gitlab.com/user/profile/personal_access_tokens/#create-a-personal-access-token)**
-   - **Bitbucket API Token:** To use Bitbucket repositories with AI Architect, an API token is required.
-     - **[View Guide](https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/)**
-
-### 2.2 System requirements
+### System requirements
 
 The AI Architect supports the following operating systems:
 
@@ -154,45 +155,26 @@ The AI Architect supports the following operating systems:
 - Unix-based systems
 - Windows (via WSL2)
 
-<br />
-
-<!-- Installation options -->
-
-## 3. Installation options
-
-AI Architect can be deployed in three different configurations depending on your team size, infrastructure, and security requirements:
-
-### 3.1 Personal use (with your LLM key)
-
-Set up AI Architect on your local machine for individual development work. You'll provide your own LLM API keys for indexing, giving you complete control over the AI models used and associated costs.
-
-**Best for:** Individual developers who want codebase understanding on their personal machine.
-
-### 3.2 Team / shared access (with your LLM key)
-
-Deploy AI Architect on a shared server within your infrastructure, allowing multiple team members to connect their AI coding tools to the same MCP server. Each team member can configure AI Architect with their preferred AI coding agent while sharing the same indexed codebase knowledge graph.
-
-**Best for:** Development teams that want to share codebase intelligence across the team while managing their own LLM costs.
-
-### 3.3 Enterprise deployment (requires Bito Enterprise Plan)
-
-Deploy AI Architect on your infrastructure (local machine or shared server) with indexing managed by Bito. Instead of providing your own LLM keys, Bito handles the repository indexing process, simplifying setup and cost management.
-
-**Best for:** Organizations that prefer managed indexing without handling individual LLM API keys and costs.
-
-<br />
+---
 
 <!-- Installation instructions -->
 
-## 4. Installation instructions
+## 3. Installation instructions
 
-This guide will walk you through the installation and setup of AI Architect in a self-hosted environment.
+Setting up AI Architect has three main steps:
+1. Setting up AI Architect
+2. Configuring repositories to index
+3. Start the indexing process
 
-### 4.1 Download AI Architect
+Once the indexing is complete, you can configure MCP in any coding or chat agent that supports MCP. This guide will walk you through installing and setting up AI Architect in a self-hosted environment.  
 
-Download the latest version of AI Architect package from our **[GitHub repository](https://github.com/gitbito/ai-architect)**.
+**Step 1- Download AI Architect**
 
-### 4.2 Extract package
+Download the latest version of AI Architect package from **[GitHub repository](https://github.com/gitbito/ai-architect)**.
+
+---
+
+**Step 2- Extract package**
 
 Run the following command to extract the downloaded package:
 
@@ -205,27 +187,25 @@ Move inside the folder:
 ```bash
 cd bito-cis-*
 ```
+---
 
-### 4.3 Run setup
+**Step 3- Run setup**
 
 ```bash
 ./setup.sh
 ```
 
 **You'll need to provide the following details when prompted:**
-
 - **Bito API Key** (required) - Your Bito authentication key
-- **Select your Git provider from available options:**
-  - GitLab
-  - GitHub
-  - Bitbucket
-- **Git Access Token** (required) - Personal access token for your Git provider
+- **Git Access Token** (required) - Personal access token for your Git provider (GitHub, GitLab or BitBucket)
+- **LLM Keys** (required unless you have a Bito Enterprise Plan)
+- 
+> Refer to the [Prerequisites section](#2-prerequisites) for details on how to obtain these. Once the setup is complete, your **Bito MCP URL** and **Bito MCP Access Token** will be displayed.
+> Make sure to store them in a safe place, you'll need them later when configuring MCP server in your AI coding agent (e.g., Claude Code, Cursor, Windsurf, GitHub Copilot (VS Code), etc.).
 
-**Note:** Refer to the [Prerequisites section](#2-prerequisites) for details on how to obtain these.
+---
 
-**Note:** Once the setup is complete, your **Bito MCP URL** and **Bito MCP Access Token** will be displayed. Make sure to store them in a safe place, you'll need them later when configuring MCP server in your AI coding agent (e.g., Claude Code, Cursor, Windsurf, GitHub Copilot (VS Code), etc.).
-
-### 4.4 Add repositories
+**Step 4- Add repositories**
 
 Edit `config.yaml` file to add your repositories for indexing:
 
@@ -242,18 +222,20 @@ Then apply the configuration:
 ```bash
 bitoarch config repo add config.yaml
 ```
+---
 
-### 4.5 Start indexing
+**Step 5- Start indexing**
 
 Trigger workspace synchronization to index your repositories:
 
 ```bash
 bitoarch manager sync
 ```
+The indexing process will take approximately 3-10 minutes per repository. Smaller repos take less time.
 
-Indexing process will take approximately 3-10 minutes per repository. Smaller repos take less time.
+---
 
-### 4.6 Check indexing status
+**Step 6- Check indexing status**
 
 Run this command to check the status of your indexing:
 
@@ -267,18 +249,13 @@ bitoarch manager status
 - `completed` - All repositories indexed
 - `failed` - Check logs for errors
 
-### 4.7 Use AI Architect in your coding agents
+> Once the indexing is complete, you can configure AI Architect in the coding or chat agent of your choice that supports MCP.
+> You will need the Bito MCP URL and the access token generated during setup.
+> You will need to ensure the AI Architect server is accessible over HTTPS if it is set up for team use.
 
-Configure MCP server in supported AI coding tools such as Claude Code, Cursor, Windsurf, and GitHub Copilot (VS Code).
+## 5. Update repository list and re-index
 
-Select your AI coding tool from the options below and follow the step-by-step installation guide to seamlessly set up AI Architect:
-
-- [Guide for Claude Code](https://docs.bito.ai/ai-architect/guide-for-claude-code)
-- [Guide for Cursor](https://docs.bito.ai/ai-architect/guide-for-cursor)
-- [Guide for Windsurf](https://docs.bito.ai/ai-architect/guide-for-windsurf)
-- [Guide for GitHub Copilot (VS Code)](https://docs.bito.ai/ai-architect/guide-for-github-copilot-vs-code)
-
-### 4.8 Update repository list and re-index
+You can update the repository list and re-index anytime after the initial setup through config.yaml file. 
 
 Edit `config.yaml` file to add/remove repositories:
 
@@ -300,27 +277,20 @@ bitoarch manager sync
 
 <br />
 
-<!-- Configuration management -->
 
-## 5. Configuration management
+## 6. Setting up Architect MCP in coding agents
 
-<br />
+Configure the MCP server in supported AI coding tools such as Claude Code, Cursor, Windsurf, and GitHub Copilot (VS Code).
 
-<!-- Indexing repositories -->
+Select your AI coding tool from the options below and follow the step-by-step installation guide to set up AI Architect seamlessly:
 
-## 6. Indexing repositories
+- [Guide for Claude Code](https://docs.bito.ai/ai-architect/guide-for-claude-code)
+- [Guide for Cursor](https://docs.bito.ai/ai-architect/guide-for-cursor)
+- [Guide for Windsurf](https://docs.bito.ai/ai-architect/guide-for-windsurf)
+- [Guide for GitHub Copilot (VS Code)](https://docs.bito.ai/ai-architect/guide-for-github-copilot-vs-code)
 
-<br />
 
-<!-- MCP configuration -->
-
-## 7. MCP configuration
-
-### 7.1 MCP server overview
-
-### 7.2 Setting up Architect MCP in coding agents
-
-### 7.3 Configuring Architect for Bito Code Review Agent
+## 7. Configuring Architect for Bito Code Review Agent
 
 <br />
 
