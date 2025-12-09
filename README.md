@@ -50,19 +50,16 @@
       <a href="#2-prerequisites">Prerequisites</a>
     </li>
     <li>
-      <a href="#3-installation-options">Installation options</a>
+      <a href="#3-installation-instructions">Installation instructions</a>
     </li>
     <li>
-      <a href="#4-installation-instructions">Installation instructions</a>
+      <a href="#4-update-repository-list-and-re-index">Update repository list and re-index</a>
     </li>
     <li>
-      <a href="#5-configuration-management">Configuration management</a>
+      <a href="#5-configuration-management">Setting up AI Architect MCP in coding agents</a>
     </li>
     <li>
-      <a href="#6-indexing-repositories">Indexing repositories</a>
-    </li>
-    <li>
-      <a href="#7-mcp-configuration">MCP configuration</a>
+      <a href="#6-indexing-repositories">Configuring AI Architect for Bito AI Code Review Agent</a>
     </li>
     <li>
       <a href="#8-command-reference">Command reference</a>
@@ -253,7 +250,7 @@ bitoarch manager status
 > You will need the Bito MCP URL and the access token generated during setup.
 > You will need to ensure the AI Architect server is accessible over HTTPS if it is set up for team use.
 
-## 5. Update repository list and re-index
+## 4. Update repository list and re-index
 
 You can update the repository list and re-index anytime after the initial setup through config.yaml file. 
 
@@ -278,7 +275,7 @@ bitoarch manager sync
 <br />
 
 
-## 6. Setting up Architect MCP in coding agents
+## 5. Setting up AI Architect MCP in coding agents
 
 Configure the MCP server in supported AI coding tools such as Claude Code, Cursor, Windsurf, and GitHub Copilot (VS Code).
 
@@ -290,17 +287,17 @@ Select your AI coding tool from the options below and follow the step-by-step in
 - [Guide for GitHub Copilot (VS Code)](https://docs.bito.ai/ai-architect/guide-for-github-copilot-vs-code)
 
 
-## 7. Configuring Architect for Bito Code Review Agent
+## 6. Configuring AI Architect for Bito AI Code Review Agent
 
 <br />
 
 <!-- Command reference -->
 
-## 8. Command reference
+## 7. Command reference
 
 Quick reference to CLI commands for managing your AI Architect.
 
-### 8.1 Platform status commands
+### 7.1 Platform status commands
 
 | Command                                  | Description              | Example                             |
 | ---------------------------------------- | ------------------------ | ----------------------------------- |
@@ -308,7 +305,7 @@ Quick reference to CLI commands for managing your AI Architect.
 | `bitoarch platform info`                 | Get platform details     | Version, ports, resource usage      |
 | `bitoarch platform rotate-token <token>` | Rotate MCP access token  | Updates token and restarts provider |
 
-### 8.2 Configuration management
+### 7.2 Configuration management
 
 | Command                                   | Description                 | Example                                   |
 | ----------------------------------------- | --------------------------- | ----------------------------------------- |
@@ -316,14 +313,14 @@ Quick reference to CLI commands for managing your AI Architect.
 | `bitoarch config repo get`                | Get current configuration   | `bitoarch config repo get`                |
 | `bitoarch config repo update <yaml-file>` | Update configuration        | `bitoarch config repo update config.yaml` |
 
-### 8.3 Workspace synchronization
+### 7.3 Workspace synchronization
 
 | Command                   | Description                | Example                                |
 | ------------------------- | -------------------------- | -------------------------------------- |
 | `bitoarch manager status` | Check indexing/sync status | Get current sync status                |
 | `bitoarch manager sync`   | Simple workspace sync      | Triggers sync for configured workspace |
 
-### 8.4 MCP operations
+### 7.4 MCP operations
 
 | Command                              | Description              | Example                            |
 | ------------------------------------ | ------------------------ | ---------------------------------- |
@@ -341,7 +338,7 @@ Quick reference to CLI commands for managing your AI Architect.
 
 **MCP resources:** Resources represent data sources for repository information. Use `bitoarch provider mcp resources` to see available resource URIs dynamically fetched from the server.
 
-### 8.5 Output options
+### 7.5 Output options
 
 Add these flags to any command:
 
@@ -354,9 +351,9 @@ Add these flags to any command:
 
 <!-- Troubleshooting guide -->
 
-## 9. Troubleshooting guide
+## 8. Troubleshooting guide
 
-### 9.1 Services not starting
+### 8.1 Services not starting
 
 ```bash
 # Check setup log
@@ -366,7 +363,7 @@ tail -f setup.log
 bitoarch platform logs
 ```
 
-### 9.2 Port conflicts
+### 8.2 Port conflicts
 
 Before running setup, edit `.env.default`:
 
@@ -375,7 +372,7 @@ vim .env.default
 # Change: CIS_PROVIDER_EXTERNAL_PORT, CIS_MANAGER_EXTERNAL_PORT, etc.
 ```
 
-### 9.3 Indexing issues
+### 8.3 Indexing issues
 
 ```bash
 # Check manager status
@@ -385,7 +382,7 @@ bitoarch manager status --raw
 bitoarch platform logs cis-manager
 ```
 
-### 9.4 Reset installation
+### 8.4 Reset installation
 
 ```bash
 # Complete clean (removes all data and configuration)
@@ -399,7 +396,7 @@ bitoarch platform logs cis-manager
 
 <!-- Support & contact -->
 
-## 10. Support & contact
+## 9. Support & contact
 
 For comprehensive information and guidance on the AI Architect, including installation and configuration instructions, please refer to our detailed **[documentation available here](https://docs.bito.ai/ai-architect/overview)**. Should you require further assistance or have any inquiries, our support team is readily available to assist you.
 
