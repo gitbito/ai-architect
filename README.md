@@ -82,13 +82,13 @@
 
 ## 1. Overview
 
-> _Click the image below to watch the demo video on YouTube._
-
-[![See Bito's AI Architect demo](https://i3.ytimg.com/vi/qAMtZ41-xJY/maxresdefault.jpg)](https://www.youtube.com/watch?v=qAMtZ41-xJY "See Bito's AI Architect demo")
-
 Bito’s **[AI Architect](https://bito.ai/product/ai-architect/)** builds a knowledge graph of your codebase — from repos to modules to APIs — delivering deep codebase intelligence to the coding agents you already use. This fundamentally changes the game for enterprises with many microservices or large, complex codebases.
 
 Bito provides this in a completely secure fashion, with the AI Architect available on-prem if you desire, and no AI is trained on your code.
+
+> _Click the image below to watch the demo video on YouTube._
+
+[![See Bito's AI Architect demo](https://i.imgur.com/k8vQ31o.png)](https://www.youtube.com/watch?v=qAMtZ41-xJY "See Bito's AI Architect demo")
 
 ---
 
