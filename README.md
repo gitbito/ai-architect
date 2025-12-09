@@ -24,7 +24,7 @@
   <h3 align="center">AI Architect</h3>
 
   <p align="center">
-    AI that understands your codebase inside out — and codes like your team.
+    System intelligence for your coding agents.
     <br />
     <a href="https://docs.bito.ai/ai-architect/overview"><strong>Explore the docs »</strong></a>
     <br />
