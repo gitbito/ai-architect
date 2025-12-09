@@ -56,19 +56,19 @@
       <a href="#4-update-repository-list-and-re-index">Update repository list and re-index</a>
     </li>
     <li>
-      <a href="#5-configuration-management">Setting up AI Architect MCP in coding agents</a>
+      <a href="#5-setting-up-ai-architect-mcp-in-coding-agents">Setting up AI Architect MCP in coding agents</a>
     </li>
     <li>
-      <a href="#6-indexing-repositories">Configuring AI Architect for Bito AI Code Review Agent</a>
+      <a href="#6-configuring-ai-architect-for-bito-ai-code-review-agent">Configuring AI Architect for Bito AI Code Review Agent</a>
     </li>
     <li>
-      <a href="#8-command-reference">Command reference</a>
+      <a href="#7-command-reference">Command reference</a>
     </li>
     <li>
-      <a href="#9-troubleshooting-guide">Troubleshooting guide</a>
+      <a href="#8-troubleshooting-guide">Troubleshooting guide</a>
     </li>
     <li>
-      <a href="#10-support--contact">Support & contact</a>
+      <a href="#9-support--contact">Support & contact</a>
     </li>
   </ol>
 </details>
@@ -122,6 +122,8 @@ You can choose to deploy and manage AI Architect in your own infrastructure with
 
 Please feel free to contact us at support@bito.ai to subscribe to the Bito Enterprise Plan for your on-prem deployment or have Bito manage the AI Architect.  
 
+---
+
 <br />
 
 <!-- Prerequisites -->
@@ -153,6 +155,8 @@ The AI Architect supports the following operating systems:
 - Windows (via WSL2)
 
 ---
+
+<br />
 
 <!-- Installation instructions -->
 
@@ -250,6 +254,12 @@ bitoarch manager status
 > You will need the Bito MCP URL and the access token generated during setup.
 > You will need to ensure the AI Architect server is accessible over HTTPS if it is set up for team use.
 
+---
+
+<br />
+
+<!-- Update repository list and re-index -->
+
 ## 4. Update repository list and re-index
 
 You can update the repository list and re-index anytime after the initial setup through config.yaml file. 
@@ -272,8 +282,11 @@ Start the re-indexing process using this command:
 bitoarch manager sync
 ```
 
+---
+
 <br />
 
+<!-- Setting up AI Architect MCP in coding agents -->
 
 ## 5. Setting up AI Architect MCP in coding agents
 
@@ -286,8 +299,15 @@ Select your AI coding tool from the options below and follow the step-by-step in
 - [Guide for Windsurf](https://docs.bito.ai/ai-architect/guide-for-windsurf)
 - [Guide for GitHub Copilot (VS Code)](https://docs.bito.ai/ai-architect/guide-for-github-copilot-vs-code)
 
+---
+
+<br />
+
+<!-- Configuring AI Architect for Bito AI Code Review Agent -->
 
 ## 6. Configuring AI Architect for Bito AI Code Review Agent
+
+---
 
 <br />
 
@@ -347,6 +367,8 @@ Add these flags to any command:
 | `--format json` | JSON output       | For automation/scripts |
 | `--help`        | Show command help | Get usage information  |
 
+---
+
 <br />
 
 <!-- Troubleshooting guide -->
@@ -391,6 +413,8 @@ bitoarch platform logs cis-manager
 # Then run setup again
 ./setup.sh
 ```
+
+---
 
 <br />
 
