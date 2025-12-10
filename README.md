@@ -349,57 +349,82 @@ Select your AI coding tool from the options below and follow the step-by-step in
 
 ## 7. Command reference
 
-Quick reference to CLI commands for managing your AI Architect.
+Quick reference to CLI commands for managing Bito's AI Architect.
 
-### 7.1 Platform status commands
+**Note:** After installation of AI Architect, the `bitoarch` command is available globally.
 
-| Command                                  | Description              | Example                             |
-| ---------------------------------------- | ------------------------ | ----------------------------------- |
-| `bitoarch platform status`               | View all services status | Shows running/stopped state         |
-| `bitoarch platform info`                 | Get platform details     | Version, ports, resource usage      |
-| `bitoarch platform rotate-token <token>` | Rotate MCP access token  | Updates token and restarts provider |
+**Note:** For more details, refer to [Available commands](https://docs.bito.ai/ai-architect/available-commands)
 
-### 7.2 Configuration management
+### Core operations
 
-| Command                                   | Description                 | Example                                   |
-| ----------------------------------------- | --------------------------- | ----------------------------------------- |
-| `bitoarch config repo add <yaml-file>`    | Add configuration from YAML | `bitoarch config repo add config.yaml`    |
-| `bitoarch config repo get`                | Get current configuration   | `bitoarch config repo get`                |
-| `bitoarch config repo update <yaml-file>` | Update configuration        | `bitoarch config repo update config.yaml` |
+| Command | Description | Example |
+|---------|-------------|---------|
+| `bitoarch index-repos` | Trigger workspace repository indexing | Simple index without parameters |
+| `bitoarch index-status` | Check indexing status | View progress and state |
+| `bitoarch index-repo-list` | List all repositories | `bitoarch index-repo-list --status active` |
+| `bitoarch show-config` | Show current configuration | `bitoarch show-config --raw` |
 
-### 7.3 Workspace synchronization
+### Repository management
 
-| Command                   | Description                | Example                                |
-| ------------------------- | -------------------------- | -------------------------------------- |
-| `bitoarch manager status` | Check indexing/sync status | Get current sync status                |
-| `bitoarch manager sync`   | Simple workspace sync      | Triggers sync for configured workspace |
+| Command | Description | Example |
+|---------|-------------|---------|
+| `bitoarch add-repo <namespace>` | Add single repository | `bitoarch add-repo myorg/myrepo` |
+| `bitoarch remove-repo <namespace>` | Remove repository | `bitoarch remove-repo myorg/myrepo` |
+| `bitoarch add-repos <file>` | Load configuration from YAML | `bitoarch add-repos .bitoarch-config.yaml` |
+| `bitoarch update-repos <file>` | Update configuration from YAML | `bitoarch update-repos .bitoarch-config.yaml` |
+| `bitoarch repo-info <name>` | Get detailed repository info | `bitoarch repo-info myrepo --dependencies` |
 
-### 7.4 MCP operations
+### Service operations
 
-| Command                              | Description              | Example                            |
-| ------------------------------------ | ------------------------ | ---------------------------------- |
-| `bitoarch provider mcp tools`        | List available MCP tools | View repository intelligence tools |
-| `bitoarch provider mcp resources`    | List MCP resources       | View available data sources        |
-| `bitoarch provider mcp capabilities` | Get server capabilities  | Check available features           |
-| `bitoarch provider mcp test`         | Test MCP connection      | Verify server connectivity         |
+| Command | Description | Example |
+|---------|-------------|---------|
+| `bitoarch status` | View all services status | Docker ps-like output |
+| `bitoarch health` | Check health of all services | `bitoarch health --verbose` |
+| `bitoarch info` | Get platform information | Version, ports, resources |
 
-**MCP tools:** The MCP server provides tools for repository intelligence and analysis. Use `bitoarch provider mcp tools` to see the current list of available tools dynamically fetched from the server. Common tools include:
+### Configuration
 
-- Repository browsing and search
-- Dependency analysis
-- Cluster identification
-- Technology stack discovery
+| Command | Description | Example |
+|---------|-------------|---------|
+| `bitoarch update-api-key` | Update Bito API key | Interactive or with --api-key flag |
+| `bitoarch update-git-creds` | Update Git provider credentials | Interactive or with flags |
+| `bitoarch rotate-mcp-token` | Rotate MCP access token | `bitoarch rotate-mcp-token <new-token>` |
 
-**MCP resources:** Resources represent data sources for repository information. Use `bitoarch provider mcp resources` to see available resource URIs dynamically fetched from the server.
+### MCP operations
 
-### 7.5 Output options
+| Command | Description | Example |
+|---------|-------------|---------|
+| `bitoarch mcp-test` | Test MCP connection | Verify server connectivity |
+| `bitoarch mcp-tools` | List available MCP tools | `bitoarch mcp-tools --details` |
+| `bitoarch mcp-capabilities` | Show MCP server capabilities | `bitoarch mcp-capabilities --output caps.json` |
+| `bitoarch mcp-resources` | List MCP resources | View available data sources |
+| `bitoarch mcp-info` | Show MCP configuration | Display URL and token info |
+
+### Output options
 
 Add these flags to any command:
 
-| Flag            | Purpose           | Example                |
-| --------------- | ----------------- | ---------------------- |
-| `--format json` | JSON output       | For automation/scripts |
-| `--help`        | Show command help | Get usage information  |
+| Flag | Purpose | Example |
+|------|---------|---------|
+| `--format json` | JSON output | For automation/scripts |
+| `--raw` | Show full API response | For debugging |
+| `--output json` | Filtered JSON output | For index-status |
+| `--help` | Show command help | Get usage information |
+
+### Getting help
+
+| Command | Shows |
+|---------|-------|
+| `bitoarch --help` | Main menu with all commands |
+| `bitoarch <command> --help` | Command-specific help |
+
+### Version
+
+Check CLI version:
+
+```bash
+bitoarch --version
+```
 
 ---
 
@@ -409,39 +434,24 @@ Add these flags to any command:
 
 ## 8. Troubleshooting guide
 
-### 8.1 Services not starting
-
 ```bash
+# Check all services
+bitoarch status
+bitoarch health --verbose
+
+# View full configuration
+bitoarch show-config --raw
+
+# Test MCP connection
+bitoarch mcp-test
+
+# Check indexing status with details
+bitoarch index-status --raw
+
 # Check setup log
 tail -f setup.log
 
-# View service logs
-bitoarch platform logs
-```
-
-### 8.2 Port conflicts
-
-Before running setup, edit `.env.default`:
-
-```bash
-vim .env.default
-# Change: CIS_PROVIDER_EXTERNAL_PORT, CIS_MANAGER_EXTERNAL_PORT, etc.
-```
-
-### 8.3 Indexing issues
-
-```bash
-# Check manager status
-bitoarch manager status --raw
-
-# View manager logs
-bitoarch platform logs cis-manager
-```
-
-### 8.4 Reset installation
-
-```bash
-# Complete clean (removes all data and configuration)
+# Reset installation (removes all data and configuration)
 ./setup.sh --clean
 
 # Then run setup again
