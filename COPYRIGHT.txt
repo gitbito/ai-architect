@@ -1,0 +1,123 @@
+COPYRIGHT
+
+Copyright (c) 2025 Bito Inc.
+All rights reserved.
+
+================================================================================
+
+BITO AI-POWERED DEVELOPER TOOLS PLATFORM
+
+This software and associated documentation files (the "Software") are the 
+proprietary and confidential property of Bito Inc. and its licensors.
+
+The Software includes but is not limited to:
+- AI-powered code review agents, Ai Architect and Agentic platforms
+
+================================================================================
+
+OWNERSHIP AND RIGHTS
+
+Bito Inc. retains all right, title, and interest in and to the Software,
+including all intellectual property rights therein. This includes but is not
+limited to:
+
+- Source code and object code
+- Documentation and specifications  
+- Algorithms and methodologies
+- User interfaces and designs
+- Trademarks, service marks, and trade names
+- Patents and patent applications
+- Trade secrets and know-how
+
+================================================================================
+
+RESTRICTIONS
+
+Unless expressly authorized by Bito Inc. in writing, you may not:
+
+1. Copy, modify, adapt, alter, translate, or create derivative works of the Software
+2. Reverse engineer, disassemble, decompile, or otherwise attempt to derive the 
+   source code of the Software
+3. Distribute, license, sublicense, sell, rent, lease, or otherwise transfer the Software
+4. Remove or alter any proprietary notices, labels, or marks from the Software
+5. Use the Software to develop competing products or services
+6. Access or use the Software beyond the scope of any applicable license agreement
+
+================================================================================
+
+THIRD-PARTY COMPONENTS
+
+The Software may include third-party open source components that are subject to 
+their respective licenses. Such components include but are not limited to:
+
+Go Ecosystem:
+- Echo Web Framework (MIT License)
+- Kafka-Go (MIT License)  
+- Redis Go Client (BSD License)
+- MySQL Driver (Mozilla Public License 2.0)
+
+Java Ecosystem:
+- Spring Boot Framework (Apache License 2.0)
+- Spring Security (Apache License 2.0)
+- Lombok (MIT License)
+
+Python Ecosystem:
+- FastAPI (MIT License)
+- Pydantic (MIT License)
+- PyGithub (LGPL License)
+
+JavaScript/TypeScript Ecosystem:
+- Angular Framework (MIT License)
+- PrimeNG (MIT License)
+- RxJS (Apache License 2.0)
+
+The inclusion of these third-party components does not grant any rights to the
+proprietary portions of the Software owned by Bito Inc.
+
+================================================================================
+
+TRADEMARKS
+
+"Bito", the Bito logo, and other Bito trademarks, service marks, graphics, and 
+logos used in connection with the Software are trademarks or registered trademarks 
+of Bito Inc. in the United States and other countries. You are not granted any 
+right or license to use these marks.
+
+================================================================================
+
+CONTACT INFORMATION
+
+For licensing inquiries, permissions, or other copyright-related matters:
+
+Bito Inc.
+Email: support@bito.ai
+Website: https://bito.ai
+
+For technical support or general inquiries:
+Email: support@bito.ai
+
+================================================================================
+
+NOTICE
+
+This copyright notice must be included in all copies or substantial portions
+of the Software and any derivative works.
+
+The Software is protected by copyright laws and international copyright treaties,
+as well as other intellectual property laws and treaties.
+
+================================================================================
+
+DISCLAIMER
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+BITO INC. BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+================================================================================
+
+Last Updated: [2025/09/26]
+Version: 1.0
