@@ -154,7 +154,7 @@ The AI Architect supports the following operating systems:
 - Unix-based systems
 - Windows (via WSL2)
 
-<br />
+---
 
 ### WSL2 is required for Windows users
 
