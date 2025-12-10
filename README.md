@@ -201,13 +201,23 @@ Setting up AI Architect has three main steps:
 
 Once the indexing is complete, you can configure AI Architect MCP server in any coding or chat agent that supports MCP. This guide will walk you through installing and setting up AI Architect in a self-hosted environment.  
 
-**Step 1- Download AI Architect**
+### Step 1- Download AI Architect
 
-Download the latest version of AI Architect package from **[GitHub repository](https://github.com/gitbito/ai-architect)**.
+Download the latest version of AI Architect package from our **[GitHub repository](https://github.com/gitbito/ai-architect)**.
 
 ---
 
-**Step 2- Extract package**
+### Step 2- Start Docker Desktop
+
+Before proceeding with the installation, ensure **Docker Desktop** is running on your system. If it's not already open, launch **Docker Desktop** and wait for it to fully start before continuing.
+
+---
+
+### Step 3- Extract the downloaded AI Architect package
+
+Open the terminal (on Windows with WSL2, launch the **Ubuntu** application from the **Start menu**).
+
+Navigate to the folder where the downloaded file is located. If the file is still in your **Downloads** folder, you can either navigate there or move the file to any other directory you prefer.
 
 Run the following command to extract the downloaded package:
 
@@ -215,32 +225,51 @@ Run the following command to extract the downloaded package:
 tar -xzf bito-cis-*.tar.gz
 ```
 
-Move inside the folder:
+**Note:** Replace `bito-cis-*.tar.gz` with the actual name of the file you downloaded.
+
+Navigate to the extracted folder:
 
 ```bash
 cd bito-cis-*
 ```
+
+**Note:** Replace `bito-cis-*` with your actual folder name.
+
+**Note for Windows users (WSL2):** To navigate to a Windows folder from the WSL terminal, use a path like:
+
+```bash
+cd /mnt/c/Users/YourName/path/to/project
+```
+
 ---
 
-**Step 3- Run setup**
+### Step 4- Run setup
+
+The setup script will guide you through configuring AI Architect with your Git provider and LLM credentials. The process is interactive and will prompt you for the necessary information step by step.
+
+**To begin setup, run:**
 
 ```bash
 ./setup.sh
 ```
 
+> **Installing dependencies:**
+> The AI Architect setup process will automatically check for required tools on your system. If any dependencies are missing (such as `jq`, which is needed for JSON processing), you'll be prompted to install them. Simply type `y` and press `Enter` to proceed with the installation.
+
 **You'll need to provide the following details when prompted:**
+> Refer to the [Prerequisites section](#2-prerequisites) for details on how to obtain these.
 - **Bito API Key** (required) - Your Bito authentication key
-- **Git Access Token** (required) - Personal access token for your Git provider (GitHub, GitLab or BitBucket)
-- **LLM Keys** (required unless you have a Bito Enterprise Plan)
-- 
-> Refer to the [Prerequisites section](#2-prerequisites) for details on how to obtain these. Once the setup is complete, your **Bito MCP URL** and **Bito MCP Access Token** will be displayed.
-> Make sure to store them in a safe place, you'll need them later when configuring MCP server in your AI coding agent (e.g., Claude Code, Cursor, Windsurf, GitHub Copilot (VS Code), etc.).
+- **Git provider** (required) - Choose your Git provider (GitHub, GitLab or BitBucket)
+- **Git Access Token** (required) - Personal access token for your Git provider
+- **Enterprise Git provider domain URL** - Provide your custom domain URL if you are using enterprise/self-hosted version of Git provider (e.g., https://github.company.com).
+- **LLM Keys** (required unless you have a Bito Enterprise Plan) - We suggest you provide API keys for both **Anthropic** and **Grok** LLMs for the best cost and coverage.
+- **Generate a secure MCP access token?** - Type `y` to generate a secure access token (recommended)
 
 ---
 
-**Step 4- Add repositories**
+### Step 5- Add repositories
 
-Edit `config.yaml` file to add your repositories for indexing:
+Edit `.bitoarch-config.yaml` file to add your repositories for indexing:
 
 ```yaml
 repository:
@@ -253,37 +282,61 @@ repository:
 Then apply the configuration:
 
 ```bash
-bitoarch config repo add config.yaml
+bitoarch add-repos .bitoarch-config.yaml
 ```
 ---
 
-**Step 5- Start indexing**
+### Step 6- Start indexing
 
-Trigger workspace synchronization to index your repositories:
+Once your repositories are configured, AI Architect needs to analyze and index them to build the knowledge graph. This process scans your codebase structure, dependencies, and relationships to enable context-aware AI assistance.
+
+Start the indexing process by running:
 
 ```bash
-bitoarch manager sync
+bitoarch index-repos
 ```
-The indexing process will take approximately 3-10 minutes per repository. Smaller repos take less time.
+
+> The indexing process will take approximately 3-10 minutes per repository. Smaller repos take less time.
+
+Once the indexing is complete, you can configure AI Architect MCP server in any coding or chat agent that supports MCP.
 
 ---
 
-**Step 6- Check indexing status**
+### Step 7- Check indexing status
 
 Run this command to check the status of your indexing:
 
 ```bash
-bitoarch manager status
+bitoarch index-status
 ```
 
 **Status indicators:**
 
-- `in_progress` - Indexing is running
-- `completed` - All repositories indexed
+- `running` - Indexing is in progress
+- `success` - All repositories indexed
 - `failed` - Check logs for errors
 
-> Once the indexing is complete, you can configure AI Architect in the coding or chat agent of your choice that supports MCP.
-> You will need the Bito MCP URL and the access token generated during setup.
+---
+
+### Step 8- Check MCP server details
+
+Once the setup is complete, your **Bito MCP URL** and **Bito MCP Access Token** will be displayed. Make sure to store them in a safe place, you'll need them later when configuring MCP server in your AI coding agent (e.g., Claude Code, Cursor, Windsurf, GitHub Copilot (VS Code), etc.).
+
+To manually check the MCP server details, use the following command:
+
+```bash
+bitoarch mcp-info
+```
+
+If you need to update your **Bito MCP Access Token**, use the following command:
+
+```bash
+bitoarch rotate-mcp-token <new-token>
+```
+
+> Replace `<new-token>` with your new secure token value.
+> **Important:** After rotating the token, you'll need to update it in all AI coding agents (Claude Code, Cursor, Windsurf, etc.) where you've configured this MCP server.
+
 > You will need to ensure the AI Architect server is accessible over HTTPS if it is set up for team use.
 
 ---
