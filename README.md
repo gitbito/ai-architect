@@ -110,7 +110,7 @@ You can choose to deploy and manage AI Architect in your own infrastructure with
 
 - **Team deployment (Free with your LLM key for up to 5 users):** Deploy AI Architect on a shared server within your infrastructure with HTTPS access, allowing multiple team members to connect their AI coding tools to the same MCP server. Each team member can configure AI Architect with their preferred AI coding agent while sharing the same indexed codebase knowledge graph.
 
-- **Enterprise deployment (For teams with more than five developers, requires Bito Enterprise Plan):** Deploy AI Architect in your infrastructure, with the option to use Bito's LLM infrastructure.
+- **Enterprise deployment (For teams with more than five developers, requires Bito Enterprise Plan):** Deploy AI Architect in your infrastructure, with the option to use Bito's LLM infrastructure. Please contact [support@bito.ai](mailto:support@bito.ai) to discuss a free Enterprise trial or to subscribe.
 
 > **ℹ️ Usage & Pricing**
 >
@@ -120,7 +120,7 @@ You can choose to deploy and manage AI Architect in your own infrastructure with
 >
 > With both keys, indexing costs are typically **$0.20–$0.40 per MB** of indexable code (source files only; binaries, archives, and images are skipped). If only an Anthropic key is provided, indexing costs rise to **$1.00–$1.50 per MB**.
 
-Please feel free to contact us at support@bito.ai to subscribe to the Bito Enterprise Plan for your on-prem deployment or have Bito manage the AI Architect.  
+Please contact us at [support@bito.ai](mailto:support@bito.ai) for a **free Enterprise trial** for your on-prem deployment, to subscribe to a paid plan, or to have Bito manage the AI Architect.
 
 ---
 
