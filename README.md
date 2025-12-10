@@ -341,6 +341,22 @@ Select your AI coding tool from the options below and follow the step-by-step in
 
 ## 6. Configuring AI Architect for Bito AI Code Review Agent
 
+Now that you have **AI Architect** set up, you can take your code quality to the next level by integrating it with **[Bito's AI Code Review Agent](https://bito.ai/product/ai-code-review-agent/)**. This powerful combination delivers significantly more accurate and context-aware code reviews by leveraging the deep codebase knowledge graph that AI Architect has built.
+
+**Why integrate AI Architect with AI Code Review Agent?**
+
+When the AI Code Review Agent has access to AI Architect's knowledge graph, it gains a comprehensive understanding of your entire codebase architecture — including microservices, modules, APIs, dependencies, and design patterns.
+
+This enables the AI Code Review Agent to:
+
+- **Provide system-aware code reviews** - Understand how changes in one service or module impact other parts of your system
+- **Catch architectural inconsistencies** - Identify when new code doesn't align with your established patterns and conventions
+- **Detect cross-repository issues** - Spot problems that span multiple repositories or services
+- **Deliver more accurate suggestions** - Generate fixes that are grounded in your actual codebase structure and usage patterns
+- **Reduce false positives** - Better understand context to avoid flagging valid code as problematic
+
+To get started with AI Architect-powered code reviews, contact our team for a trial at **[support@bito.ai](mailto:support@bito.ai)**. We'll help you configure the integration and get your team up and running quickly.
+
 ---
 
 <br />
