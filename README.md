@@ -271,7 +271,9 @@ The setup script will guide you through configuring AI Architect with your Git p
 
 ### Step 5- Add repositories
 
-Edit `.bitoarch-config.yaml` file to add your repositories for indexing:
+Once your Git account is connected successfully, Bito automatically detects your repositories and populates the `.bitoarch-config.yaml` file with an initial list. Review this file to confirm which repositories you want to index — feel free to remove any that should be excluded or add others as needed. Once the list looks correct, save the file, and continue with the steps below.
+
+Below is an example of how the `.bitoarch-config.yaml` file is structured:
 
 ```yaml
 repository:
@@ -281,7 +283,18 @@ repository:
     - namespace: your-org/repo-name-3
 ```
 
-Then apply the configuration:
+After updating the `.bitoarch-config.yaml` file, you have two options to proceed with adding your repositories for indexing:
+
+1. **Auto Configure (recommended)**
+   - Automatically saves the repositories and starts indexing
+   - If needed, edit the repo list before selecting this option
+
+2. **Manual Setup**
+   - You have to manually update the configuration file and then start the indexing. Below we have provided complete details of the manual process.
+
+Once you select an option, your **Bito MCP URL** and **Bito MCP Access Token** will be displayed. Make sure to store them in a safe place, you'll need them later when configuring MCP server in your AI coding agent (e.g., Claude Code, Cursor, Windsurf, GitHub Copilot (VS Code), etc.).
+
+To manually apply the configuration, run this command:
 
 ```bash
 bitoarch add-repos .bitoarch-config.yaml
@@ -322,9 +335,7 @@ bitoarch index-status
 
 ### Step 8- Check MCP server details
 
-Once the setup is complete, your **Bito MCP URL** and **Bito MCP Access Token** will be displayed. Make sure to store them in a safe place, you'll need them later when configuring MCP server in your AI coding agent (e.g., Claude Code, Cursor, Windsurf, GitHub Copilot (VS Code), etc.).
-
-To manually check the MCP server details, use the following command:
+To manually check the MCP server details (e.g. **Bito MCP URL** and **Bito MCP Access Token**), use the following command:
 
 ```bash
 bitoarch mcp-info
