@@ -154,6 +154,38 @@ The AI Architect supports the following operating systems:
 - Unix-based systems
 - Windows (via WSL2)
 
+<br />
+
+### WSL2 is required for Windows users
+
+If you're running Windows, Windows Subsystem for Linux 2 (WSL2) must be installed before proceeding.
+
+**To install WSL2:**
+
+1. Open PowerShell or Command Prompt as Administrator
+2. Run the following command:
+```bash
+   wsl --install
+```
+3. Set up your Ubuntu username and password when prompted
+
+### Docker Desktop (required)
+
+**Docker Compose** is required to run AI Architect. The easiest and recommended way to get Docker Compose is to install **Docker Desktop**.
+
+Docker Desktop includes Docker Compose along with Docker Engine and Docker CLI which are Compose prerequisites.
+
+[Install Docker Desktop](https://docs.docker.com/compose/install)
+
+**Configuration for Windows (WSL2):**
+
+If you're using Windows with WSL2, you need to enable Docker integration with your WSL distribution:
+
+1. Open **Docker Desktop**
+2. Go to **Settings > Resources > WSL Integration**
+3. Enable integration for your WSL distribution (e.g., Ubuntu)
+4. Click **Apply**
+
 ---
 
 <br />
