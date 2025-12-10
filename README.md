@@ -199,7 +199,7 @@ Setting up AI Architect has three main steps:
 2. Configuring repositories to index
 3. Start the indexing process
 
-Once the indexing is complete, you can configure MCP in any coding or chat agent that supports MCP. This guide will walk you through installing and setting up AI Architect in a self-hosted environment.  
+Once the indexing is complete, you can configure AI Architect MCP server in any coding or chat agent that supports MCP. This guide will walk you through installing and setting up AI Architect in a self-hosted environment.  
 
 **Step 1- Download AI Architect**
 
@@ -330,6 +330,8 @@ Select your AI coding tool from the options below and follow the step-by-step in
 - [Guide for Cursor](https://docs.bito.ai/ai-architect/guide-for-cursor)
 - [Guide for Windsurf](https://docs.bito.ai/ai-architect/guide-for-windsurf)
 - [Guide for GitHub Copilot (VS Code)](https://docs.bito.ai/ai-architect/guide-for-github-copilot-vs-code)
+- [Guide for Junie (JetBrains)](https://docs.bito.ai/ai-architect/guide-for-junie-jetbrains)
+- [Guide for JetBrains AI Assistant](https://docs.bito.ai/ai-architect/guide-for-jetbrains-ai-assistant)
 
 ---
 
