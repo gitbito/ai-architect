@@ -142,7 +142,9 @@ You’ll need a **Bito account** and a **Bito Access Key** to authenticate AI Ar
 Used by AI Architect to read and index your repositories. Bito supports **GitHub**, **GitLab**, and **Bitbucket**.
 - **GitHub classic Token with `repo` access**  Fine-grained tokens are not supported. [Learn more](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic)  
 - **GitLab token with `api` scope)** [Learn more](https://docs.gitlab.com/user/profile/personal_access_tokens/#create-a-personal-access-token)
-- **Bitbucket API Token**  [Learn more](https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/)
+- **Bitbucket Access Token:** Depending on your Bitbucket setup, you may need one of the following:
+  - For **Bitbucket Cloud** use **API Token**. [Learn more](https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/)
+  - For **Bitbucket Enterprise (Self-Hosted)** use **HTTP Access Token**. [Learn more](https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html)
 
 ---
 
