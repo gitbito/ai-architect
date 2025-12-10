@@ -294,24 +294,24 @@ bitoarch manager status
 
 ## 4. Update repository list and re-index
 
-You can update the repository list and re-index anytime after the initial setup through config.yaml file. 
+You can update the repository list and re-index anytime after the initial setup through `.bitoarch-config.yaml` file.
 
-Edit `config.yaml` file to add/remove repositories:
+Edit `.bitoarch-config.yaml` file to add/remove repositories:
 
 ```bash
-vim config.yaml
+vim .bitoarch-config.yaml
 ```
 
 To apply the changes, run this command:
 
 ```bash
-bitoarch config repo update config.yaml
+bitoarch update-repos .bitoarch-config.yaml
 ```
 
 Start the re-indexing process using this command:
 
 ```bash
-bitoarch manager sync
+bitoarch index-repos
 ```
 
 ---
@@ -353,7 +353,7 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 
 **Note:** After installation of AI Architect, the `bitoarch` command is available globally.
 
-**Note:** For more details, refer to [Available commands](https://docs.bito.ai/ai-architect/available-commands)
+**Note:** For more details, refer to [Available commands](https://docs.bito.ai/ai-architect/available-commands).
 
 ### Core operations
 
