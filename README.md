@@ -421,7 +421,14 @@ This enables the AI Code Review Agent to:
 - **Deliver more accurate suggestions** - Generate fixes that are grounded in your actual codebase structure and usage patterns
 - **Reduce false positives** - Better understand context to avoid flagging valid code as problematic
 
-To get started with AI Architect-powered code reviews, contact our team for a trial at **[support@bito.ai](mailto:support@bito.ai)**. We'll help you configure the integration and get your team up and running quickly.
+### Getting started with AI Architect-powered code reviews
+
+1. Log in to **[Bito Cloud](https://alpha.bito.ai/home/welcome)**
+2. Open the **[AI Architect Settings](https://alpha.bito.ai/home/ai-architect/settings?mode=self-hosted)** dashboard.
+3. In the **Server URL** field, enter your **Bito MCP URL**
+4. In the **Auth token** field, enter your **Bito MCP Access Token**
+
+**Need help getting started?** Contact our team at **[support@bito.ai](mailto:support@bito.ai)** to request a trial. We'll help you configure the integration and get your team up and running quickly.
 
 ---
 
