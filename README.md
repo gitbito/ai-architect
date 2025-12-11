@@ -224,18 +224,18 @@ Navigate to the folder where the downloaded file is located. If the file is stil
 Run the following command to extract the downloaded package:
 
 ```bash
-tar -xzf bito-cis-*.tar.gz
+tar -xzf bito-ai-architect-*.tar.gz
 ```
 
-**Note:** Replace `bito-cis-*.tar.gz` with the actual name of the file you downloaded.
+**Note:** Replace `bito-ai-architect-*.tar.gz` with the actual name of the file you downloaded.
 
 Navigate to the extracted folder:
 
 ```bash
-cd bito-cis-*
+cd bito-ai-architect-*
 ```
 
-**Note:** Replace `bito-cis-*` with your actual folder name.
+**Note:** Replace `bito-ai-architect-*` with your actual folder name.
 
 **Note for Windows users (WSL2):** To navigate to a Windows folder from the WSL terminal, use a path like:
 
@@ -538,6 +538,12 @@ tail -f setup.log
 
 # Then run setup again
 ./setup.sh
+
+# To stop all the service
+./setup.sh --stop
+
+# Restart service (for env based config updates)
+./setup.sh --restart
 ```
 
 ---
