@@ -171,7 +171,7 @@ If you're running Windows, Windows Subsystem for Linux 2 (WSL2) must be installe
 ```
 3. Set up your Ubuntu username and password when prompted
 
-### Docker Desktop (required)
+### Docker Desktop / Docker Service (required)
 
 **Docker Compose** is required to run AI Architect. The easiest and recommended way to get Docker Compose is to install **Docker Desktop**.
 
@@ -197,7 +197,7 @@ If you're using Windows with WSL2, you need to enable Docker integration with yo
 ## 3. Installation instructions
 
 Setting up AI Architect has three main steps:
-1. Setting up AI Architect
+1. Download and install Bito AI Architect
 2. Configuring repositories to index
 3. Start the indexing process
 
@@ -209,9 +209,9 @@ Download the latest version of AI Architect package from our **[GitHub repositor
 
 ---
 
-### Step 2- Start Docker Desktop
+### Step 2- Start Docker Desktop / Docker Service
 
-Before proceeding with the installation, ensure **Docker Desktop** is running on your system. If it's not already open, launch **Docker Desktop** and wait for it to fully start before continuing.
+Before proceeding with the installation, ensure **Docker Desktop / Docker Service** is running on your system. If it's not already open, launch **Docker Desktop** and wait for it to fully start before continuing.
 
 ---
 
@@ -224,18 +224,18 @@ Navigate to the folder where the downloaded file is located. If the file is stil
 Run the following command to extract the downloaded package:
 
 ```bash
-tar -xzf bito-cis-*.tar.gz
+tar -xzf bito-ai-architect-*.tar.gz
 ```
 
-**Note:** Replace `bito-cis-*.tar.gz` with the actual name of the file you downloaded.
+**Note:** Replace `bito-ai-architect-*.tar.gz` with the actual name of the file you downloaded.
 
 Navigate to the extracted folder:
 
 ```bash
-cd bito-cis-*
+cd bito-ai-architect-*
 ```
 
-**Note:** Replace `bito-cis-*` with your actual folder name.
+**Note:** Replace `bito-ai-architect-*` with your actual folder name.
 
 **Note for Windows users (WSL2):** To navigate to a Windows folder from the WSL terminal, use a path like:
 
@@ -462,7 +462,6 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 |---------|-------------|---------|
 | `bitoarch status` | View all services status | Docker ps-like output |
 | `bitoarch health` | Check health of all services | `bitoarch health --verbose` |
-| `bitoarch info` | Get platform information | Version, ports, resources |
 
 ### Configuration
 
@@ -538,6 +537,12 @@ tail -f setup.log
 
 # Then run setup again
 ./setup.sh
+
+# To stop all the service
+./setup.sh --stop
+
+# Restart service (for env based config updates)
+./setup.sh --restart
 ```
 
 ---
