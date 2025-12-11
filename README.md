@@ -205,7 +205,7 @@ Once the indexing is complete, you can configure AI Architect MCP server in any 
 
 ### Step 1- Download AI Architect
 
-Download the latest version of AI Architect package from our **[GitHub repository](https://github.com/gitbito/ai-architect)**.
+Download the latest version of AI Architect package from our **[GitHub repository](https://github.com/gitbito/ai-architect/blob/main/bito-ai-architect-1.0.0.tar.gz)**.
 
 ---
 
