@@ -217,30 +217,30 @@ Before proceeding with the installation, ensure **Docker Desktop / Docker Servic
 
 ### Step 3- Extract the downloaded AI Architect package
 
-Open the terminal (on Windows with WSL2, launch the **Ubuntu** application from the **Start menu**).
+Open your terminal:
+- **Linux/macOS:** Use your standard terminal application
+- **Windows (WSL2):** Launch the **Ubuntu** application from the **Start menu**
 
-Navigate to the folder where the downloaded file is located. If the file is still in your **Downloads** folder, you can either navigate there or move the file to any other directory you prefer.
+Navigate to the folder where you downloaded the file. You can either work directly in your **Downloads** folder or move the file to any preferred location first, then navigate there in the terminal.
+- **Linux/macOS:** `cd /path/to/your/folder`
+- **Windows (WSL2):** `cd /mnt/c/Users/YourUsername/path/to/folder`
 
-Run the following command to extract the downloaded package:
+Create a directory for AI Architect and extract the downloaded package into it:
 
 ```bash
-tar -xzf bito-ai-architect-*.tar.gz
+mkdir bito-ai-architect
 ```
 
-**Note:** Replace `bito-ai-architect-*.tar.gz` with the actual name of the file you downloaded.
+```bash
+tar -xzf bito-ai-architect-*.tar.gz -C bito-ai-architect
+```
+
+> **Note:** Replace `bito-ai-architect-*.tar.gz` with the actual name of the file you downloaded.
 
 Navigate to the extracted folder:
 
 ```bash
-cd bito-ai-architect-*
-```
-
-**Note:** Replace `bito-ai-architect-*` with your actual folder name.
-
-**Note for Windows users (WSL2):** To navigate to a Windows folder from the WSL terminal, use a path like:
-
-```bash
-cd /mnt/c/Users/YourName/path/to/project
+cd bito-ai-architect
 ```
 
 ---
