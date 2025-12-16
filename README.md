@@ -266,7 +266,7 @@ The setup script will guide you through configuring AI Architect with your Git p
 - **Enterprise Git provider domain URL** - Provide your custom domain URL if you are using enterprise/self-hosted version of Git provider (e.g., https://github.company.com).
 - **LLM Keys** (required unless you have a Bito Enterprise Plan) - We suggest you provide API keys for both **Anthropic** and **Grok** LLMs for the best cost and coverage.
 - **Generate a secure MCP access token?** - Type `y` to generate a secure access token (recommended)
-> **LLM Rate Limit** - To ensure stable and uninterrupted operation, the configured LLM provider must support the following minimum rate limits:
+> **LLM Rate Limit:** To ensure stable and uninterrupted operation, the configured LLM provider must support the following minimum rate limits:
 >   - **Requests Per Minute (RPM):** 300
 >   - **Tokens Per Minute (TPM):** 1,000,000 (1M)
 
@@ -550,7 +550,85 @@ tail -f setup.log
 
 ---
 
-<br />
+
+## 9. Upgrading AI Architect
+
+[](#overview)
+
+Upgrade your AI Architect installation to the latest version while preserving your data and configuration.
+The upgrade process:
+*   Automatically detects your current version
+*   Downloads and extracts the new version
+*   Migrates your configuration and data
+*   Seamlessly transitions to the new version
+*   Preserves all indexed repositories and settings
+
+### Upgrade instructions
+
+### Option 1: Upgrade from within your installation (Recommended)
+
+[](#option-1-upgrade-from-within-your-installation-recommended)
+
+If you're running **version 2.0.0 or higher**, navigate to your current installation directory and run:
+
+```bash
+cd /path/to/bito-ai-architect
+./scripts/upgrade.sh --version=2.0.0
+```
+
+* * *
+
+### Option 2: Upgrade from external location
+
+[](#option-3-upgrade-from-external-location)
+
+If you need to run the upgrade from outside your installation directory (useful for **version 1.0.0**), use the `--old-path` parameter:
+
+```bash
+# Download the standalone upgrade script
+curl -O https://raw.githubusercontent.com/gitbito/ai-architect/main/scripts/upgrade.sh
+chmod +x upgrade.sh
+
+# Run upgrade with explicit path
+./upgrade.sh --old-path=/path/to/bito-ai-architect --version=2.0.0
+```
+
+* * *
+
+### Upgrade parameters
+The upgrade script supports the following parameters:
+
+```bash
+# Description
+--version=VERSION
+
+# Upgrade to specific version
+--version=2.0.0
+
+# Upgrade from custom URL or file
+--url=file:///path/to/package.tar.gz
+
+# Specify installation path (required if running outside installation directory)
+--old-path=/opt/bito-ai-architect
+
+# Show help message
+--help
+```
+***
+
+### What gets preserved during upgrade
+
+The upgrade process preserves:
+
+*   ✅ All indexed repositories and knowledge graphs
+*   ✅ Your Git provider credentials and access tokens
+*   ✅ Bito API key and MCP access token
+*   ✅ LLM API keys configuration
+*   ✅ Repository configurations (`.bitoarch-config.yaml`)
+*   ✅ Docker volumes containing all data
+*   ✅ Service configurations and settings
+
+* * *
 
 <!-- Support & contact -->
 
