@@ -266,7 +266,8 @@ The setup script will guide you through configuring AI Architect with your Git p
 - **Enterprise Git provider domain URL** - Provide your custom domain URL if you are using enterprise/self-hosted version of Git provider (e.g., https://github.company.com).
 - **LLM Keys** (required unless you have a Bito Enterprise Plan) - We suggest you provide API keys for both **Anthropic** and **Grok** LLMs for the best cost and coverage.
 - **Generate a secure MCP access token?** - Type `y` to generate a secure access token (recommended)
-> **LLM Rate Limit:** To ensure stable and uninterrupted operation, the configured LLM provider must support the following minimum rate limits:
+
+> **LLM Rate Limit Requirements:** To ensure stable and uninterrupted operation, the configured LLM provider must support the following minimum rate limits:
 >   - **Requests Per Minute (RPM):** 300
 >   - **Tokens Per Minute (TPM):** 1,000,000 (1M)
 
