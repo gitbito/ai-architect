@@ -570,11 +570,11 @@ The upgrade process:
 
 [](#option-1-upgrade-from-within-your-installation-recommended)
 
-If you're running **version 2.0.0 or higher**, navigate to your current installation directory and run:
+If you're running **version 1.1.0 or higher**, navigate to your current installation directory and run:
 
 ```bash
 cd /path/to/bito-ai-architect
-./scripts/upgrade.sh --version=2.0.0
+./scripts/upgrade.sh --version=latest
 ```
 
 * * *
@@ -591,7 +591,7 @@ curl -O https://raw.githubusercontent.com/gitbito/ai-architect/main/scripts/upgr
 chmod +x upgrade.sh
 
 # Run upgrade with explicit path
-./upgrade.sh --old-path=/path/to/bito-ai-architect --version=2.0.0
+./upgrade.sh --old-path=/path/to/bito-ai-architect --version=latest
 ```
 
 * * *
@@ -604,7 +604,7 @@ The upgrade script supports the following parameters:
 --version=VERSION
 
 # Upgrade to specific version
---version=2.0.0
+--version=latest
 
 # Upgrade from custom URL or file
 --url=file:///path/to/package.tar.gz
@@ -615,19 +615,10 @@ The upgrade script supports the following parameters:
 # Show help message
 --help
 ```
-***
 
-### What gets preserved during upgrade
 
-The upgrade process preserves:
-
-*   ✅ All indexed repositories and knowledge graphs
-*   ✅ Your Git provider credentials and access tokens
-*   ✅ Bito API key and MCP access token
-*   ✅ LLM API keys configuration
-*   ✅ Repository configurations (`.bitoarch-config.yaml`)
-*   ✅ Docker volumes containing all data
-*   ✅ Service configurations and settings
+>**Your data is safe:**
+> All repositories, indexes, API keys, and settings are automatically preserved during upgrade.
 
 * * *
 
