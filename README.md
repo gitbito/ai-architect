@@ -587,7 +587,7 @@ If you need to run the upgrade from outside your installation directory (useful 
 
 ```bash
 # Download the standalone upgrade script
-curl -O https://raw.githubusercontent.com/gitbito/ai-architect/main/scripts/upgrade.sh
+curl -O https://github.com/gitbito/ai-architect/blob/main/upgrade.sh
 chmod +x upgrade.sh
 
 # Run upgrade with explicit path
