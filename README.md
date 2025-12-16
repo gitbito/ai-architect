@@ -267,6 +267,10 @@ The setup script will guide you through configuring AI Architect with your Git p
 - **LLM Keys** (required unless you have a Bito Enterprise Plan) - We suggest you provide API keys for both **Anthropic** and **Grok** LLMs for the best cost and coverage.
 - **Generate a secure MCP access token?** - Type `y` to generate a secure access token (recommended)
 
+> **LLM Rate Limit Requirements:** To ensure stable and uninterrupted operation, the configured LLM provider must support the following minimum rate limits:
+>   - **Requests Per Minute (RPM):** 300
+>   - **Tokens Per Minute (TPM):** 1,000,000 (1M)
+
 ---
 
 ### Step 5- Add repositories
@@ -554,7 +558,76 @@ tail -f setup.log
 
 ---
 
-<br />
+
+## 9. Upgrading AI Architect
+
+[](#overview)
+
+Upgrade your AI Architect installation to the latest version while preserving your data and configuration.
+The upgrade process:
+*   Automatically detects your current version
+*   Downloads and extracts the new version
+*   Migrates your configuration and data
+*   Seamlessly transitions to the new version
+*   Preserves all indexed repositories and settings
+
+### Upgrade instructions
+
+### Option 1: Upgrade from within your installation (Recommended)
+
+[](#option-1-upgrade-from-within-your-installation-recommended)
+
+If you're running **version 1.1.0 or higher**, navigate to your current installation directory and run:
+
+```bash
+cd /path/to/bito-ai-architect
+./scripts/upgrade.sh --version=latest
+```
+
+* * *
+
+### Option 2: Upgrade from external location
+
+[](#option-3-upgrade-from-external-location)
+
+If you need to run the upgrade from outside your installation directory (useful for **version 1.0.0**), use the `--old-path` parameter:
+
+```bash
+# Download the standalone upgrade script
+curl -O https://github.com/gitbito/ai-architect/blob/main/upgrade.sh
+chmod +x upgrade.sh
+
+# Run upgrade with explicit path
+./upgrade.sh --old-path=/path/to/bito-ai-architect --version=latest
+```
+
+* * *
+
+### Upgrade parameters
+The upgrade script supports the following parameters:
+
+```bash
+# Description
+--version=VERSION
+
+# Upgrade to specific version
+--version=latest
+
+# Upgrade from custom URL or file
+--url=file:///path/to/package.tar.gz
+
+# Specify installation path (required if running outside installation directory)
+--old-path=/opt/bito-ai-architect
+
+# Show help message
+--help
+```
+
+
+>**Your data is safe:**
+> All repositories, indexes, API keys, and settings are automatically preserved during upgrade.
+
+* * *
 
 <!-- Support & contact -->
 
