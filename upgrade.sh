@@ -537,11 +537,12 @@ start_new_version_standalone() {
     msg_info "This may take 2-5 minutes (pulling images, starting containers)..."
     
     if [[ "$DOCKER_COMPOSE_CMD" == "docker compose" ]]; then
-        docker compose --env-file .env-bitoarch up -d > "$LOG_FILE" 2>&1 &
+        docker compose --env-file .env-bitoarch up -d --pull always > "$LOG_FILE" 2>&1 &
     else
         set -a
         source .env-bitoarch
         set +a
+        $DOCKER_COMPOSE_CMD pull >> "$LOG_FILE" 2>&1 || true
         $DOCKER_COMPOSE_CMD up -d > "$LOG_FILE" 2>&1 &
     fi
     
@@ -722,7 +723,7 @@ main() {
         if [[ "$TARGET_VERSION" == "latest" ]]; then
             download_url="${DOWNLOAD_BASE_URL}/latest/bito-ai-architect-latest.tar.gz"
         else
-            download_url="${DOWNLOAD_BASE_URL}/versions/${TARGET_VERSION}/bito-ai-architect-${TARGET_VERSION}.tar.gz"
+            download_url="${DOWNLOAD_BASE_URL}/${TARGET_VERSION}/bito-ai-architect-${TARGET_VERSION}.tar.gz"
         fi
         tarball_path=$(download_package "$version_name" "$download_url")
     fi
