@@ -190,6 +190,16 @@ If you're using Windows with WSL2, you need to enable Docker integration with yo
 
 ---
 
+### Kubernetes cluster (optional)
+
+AI Architect supports Kubernetes as an alternative deployment option. For production deployments, a Kubernetes cluster must be pre-configured on your infrastructure.
+
+For testing and development purposes, you can create a local cluster using KIND (Kubernetes in Docker). Refer to the [Kubernetes Deployment Guide](https://github.com/gitbito/ai-architect/blob/main/docs/KUBERNETES_DEPLOYMENT.md) for detailed instructions.
+
+> **Note:** Kubernetes deployment support is available from version 1.3.0 onwards.
+
+---
+
 <br />
 
 <!-- Installation instructions -->
@@ -260,6 +270,7 @@ The setup script will guide you through configuring AI Architect with your Git p
 
 **You'll need to provide the following details when prompted:**
 > Refer to the [Prerequisites section](#2-prerequisites) for details on how to obtain these.
+- **Deployment type** - Choose between **Docker** or **Kubernetes** based on your infrastructure requirements
 - **Bito API Key** (required) - Your Bito authentication key
 - **Git provider** (required) - Choose your Git provider (GitHub, GitLab or BitBucket)
 - **Git Access Token** (required) - Personal access token for your Git provider
@@ -554,6 +565,9 @@ tail -f setup.log
 
 # Restart service (for env based config updates)
 ./setup.sh --restart
+
+# Force pull latest images and restart services
+./setup.sh --update
 ```
 
 ---
@@ -626,6 +640,23 @@ The upgrade script supports the following parameters:
 
 >**Your data is safe:**
 > All repositories, indexes, API keys, and settings are automatically preserved during upgrade.
+
+* * *
+
+### Deployment type compatibility
+
+Upgrades must be performed within the same deployment type. You can only upgrade Docker to Docker or Kubernetes to Kubernetes.
+
+To switch between deployment types (Docker to Kubernetes or Kubernetes to Docker), you must use the `--clean` command to remove all data and configuration, then perform a fresh installation with the desired deployment type.
+
+```bash
+./setup.sh --clean
+./setup.sh
+```
+
+> **Important:** Switching deployment types with `--clean` will result in data loss. All indexed repositories and configuration will be removed.
+
+> **Note:** Kubernetes deployment support is available from version 1.3.0 onwards. Versions prior to 1.3.0 only support Docker deployment.
 
 * * *
 
