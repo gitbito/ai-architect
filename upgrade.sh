@@ -38,9 +38,10 @@ LOG_FILE="/tmp/bito-upgrade-$$.log"
 NEW_DIR=""
 NEW_ENV=""
 OLD_ENV=""
-UPGRADE_MODE=""  # Will be set to "embedded" or "standalone"
+UPGRADE_MODE=""  # Will be set to "embedded", "standalone", or "kubernetes"
 CURRENT_VERSION=""
 DOCKER_COMPOSE_CMD=""
+DEPLOYMENT_TYPE="docker-compose"  # Will be set to "kubernetes" if detected
 
 # Print functions
 msg_success() { echo -e "${GREEN}✓${NC} $1" | tee -a "$LOG_FILE"; }
@@ -131,6 +132,19 @@ Features:
 EOF
 }
 
+# Detect deployment type
+detect_deployment_type() {
+    if [[ -f "${OLD_DIR}/.deployment-type" ]]; then
+        DEPLOYMENT_TYPE=$(cat "${OLD_DIR}/.deployment-type")
+        msg_info "Detected deployment type: $DEPLOYMENT_TYPE"
+        log_silent "Deployment type: $DEPLOYMENT_TYPE"
+    else
+        DEPLOYMENT_TYPE="docker-compose"
+        msg_info "No deployment type marker found, assuming: docker-compose"
+        log_silent "Defaulting to docker deployment type"
+    fi
+}
+
 # Parse arguments
 parse_args() {
     TARGET_VERSION="latest"
@@ -194,10 +208,17 @@ parse_args() {
     PARENT_DIR="$(dirname "$OLD_DIR")"
     OLD_ENV="${OLD_DIR}/.env-bitoarch"
     
+    # Detect deployment type first
+    detect_deployment_type
+    
     # Detect current version and determine upgrade mode
     detect_current_version "$OLD_DIR"
     
-    if [[ "$CURRENT_VERSION" == "1.0.0" ]]; then
+    # Determine upgrade mode based on deployment type and version
+    if [[ "$DEPLOYMENT_TYPE" == "kubernetes" ]]; then
+        UPGRADE_MODE="kubernetes"
+        msg_info "Using Kubernetes upgrade mode (helm upgrade)"
+    elif [[ "$CURRENT_VERSION" == "1.0.0" ]]; then
         UPGRADE_MODE="standalone"
         msg_info "Detected version 1.0.0 - using standalone mode (direct docker compose)"
     elif [[ "$CURRENT_VERSION" == "unknown" ]]; then
@@ -235,20 +256,53 @@ check_prerequisites() {
         exit 1
     fi
     
-    # Check Docker
-    if ! docker info >/dev/null 2>&1; then
-        msg_error "Docker is not running"
-        exit 1
-    fi
-    
-    # Detect docker compose command for standalone mode
-    if [[ "$UPGRADE_MODE" == "standalone" ]]; then
-        DOCKER_COMPOSE_CMD=$(detect_docker_compose)
-        if [[ -z "$DOCKER_COMPOSE_CMD" ]]; then
-            msg_error "Docker Compose not found (tried 'docker compose' and 'docker-compose')"
+    # Kubernetes-specific prerequisites
+    if [[ "$UPGRADE_MODE" == "kubernetes" ]]; then
+        msg_info "Checking Kubernetes prerequisites..."
+        
+        # Check kubectl
+        if ! command -v kubectl >/dev/null 2>&1; then
+            msg_error "kubectl not found (required for Kubernetes deployment)"
+            msg_info "Install kubectl:"
+            msg_info "  macOS: brew install kubectl"
+            msg_info "  Ubuntu: sudo apt-get install -y kubectl"
             exit 1
         fi
-        log_silent "Using docker compose command: $DOCKER_COMPOSE_CMD"
+        
+        # Check helm
+        if ! command -v helm >/dev/null 2>&1; then
+            msg_error "Helm not found (required for Kubernetes deployment)"
+            msg_info "Install Helm:"
+            msg_info "  macOS: brew install helm"
+            msg_info "  Ubuntu: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
+            exit 1
+        fi
+        
+        # Check kubectl connectivity
+        if ! kubectl cluster-info >/dev/null 2>&1; then
+            msg_error "Cannot connect to Kubernetes cluster"
+            msg_info "Please ensure kubectl is configured correctly"
+            exit 1
+        fi
+        
+        log_silent "Kubernetes prerequisites verified: kubectl and helm found"
+        msg_success "Kubernetes prerequisites verified"
+    else
+        # Docker prerequisites for non-K8s deployments
+        if ! docker info >/dev/null 2>&1; then
+            msg_error "Docker is not running"
+            exit 1
+        fi
+        
+        # Detect docker compose command for standalone mode
+        if [[ "$UPGRADE_MODE" == "standalone" ]]; then
+            DOCKER_COMPOSE_CMD=$(detect_docker_compose)
+            if [[ -z "$DOCKER_COMPOSE_CMD" ]]; then
+                msg_error "Docker Compose not found (tried 'docker compose' and 'docker-compose')"
+                exit 1
+            fi
+            log_silent "Using docker compose command: $DOCKER_COMPOSE_CMD"
+        fi
     fi
     
     msg_success "System requirements verified"
@@ -369,6 +423,95 @@ extract_package() {
     log_silent "Verified package structure (setup.sh, bitoarch, scripts/lib exist)"
 }
 
+# Patch env file with IMAGE variables from new version
+patch_env_with_images() {
+    local env_file="$1"
+    local versions_file="${NEW_DIR}/versions/service-versions.json"
+    
+    # Check if IMAGE variables already exist
+    local images_exist=false
+    if grep -q "CIS_CONFIG_IMAGE=" "$env_file" 2>/dev/null; then
+        images_exist=true
+        msg_info "Updating IMAGE variables to new version..."
+    else
+        msg_info "Adding IMAGE variables from new version..."
+    fi
+    
+    # Read versions and image bases from NEW version's versions/service-versions.json
+    local cis_config_version cis_config_image_base
+    local cis_manager_version cis_manager_image_base
+    local cis_provider_version cis_provider_image_base
+    local cis_tracker_version cis_tracker_image_base
+    local mysql_version mysql_image_base
+    
+    if command -v jq >/dev/null 2>&1 && [[ -f "$versions_file" ]]; then
+        cis_config_version=$(jq -r '.services."cis-config".version' "$versions_file" 2>/dev/null || echo "latest")
+        cis_config_image_base=$(jq -r '.services."cis-config".image' "$versions_file" 2>/dev/null || echo "docker.io/bitoai/cis-config")
+        
+        cis_manager_version=$(jq -r '.services."cis-manager".version' "$versions_file" 2>/dev/null || echo "latest")
+        cis_manager_image_base=$(jq -r '.services."cis-manager".image' "$versions_file" 2>/dev/null || echo "docker.io/bitoai/cis-manager")
+        
+        cis_provider_version=$(jq -r '.services."cis-provider".version' "$versions_file" 2>/dev/null || echo "latest")
+        cis_provider_image_base=$(jq -r '.services."cis-provider".image' "$versions_file" 2>/dev/null || echo "docker.io/bitoai/xmcp")
+        
+        cis_tracker_version=$(jq -r '.services."cis-tracker".version' "$versions_file" 2>/dev/null || echo "latest")
+        cis_tracker_image_base=$(jq -r '.services."cis-tracker".image' "$versions_file" 2>/dev/null || echo "docker.io/bitoai/cis-tracking")
+        
+        mysql_version=$(jq -r '.services."mysql".version' "$versions_file" 2>/dev/null || echo "8.0")
+        mysql_image_base=$(jq -r '.services."mysql".image' "$versions_file" 2>/dev/null || echo "mysql")
+    else
+        # Fallback to defaults if jq not available or file missing
+        cis_config_version="latest"
+        cis_config_image_base="docker.io/bitoai/cis-config"
+        cis_manager_version="latest"
+        cis_manager_image_base="docker.io/bitoai/cis-manager"
+        cis_provider_version="latest"
+        cis_provider_image_base="docker.io/bitoai/xmcp"
+        cis_tracker_version="latest"
+        cis_tracker_image_base="docker.io/bitoai/cis-tracking"
+        mysql_version="8.0"
+        mysql_image_base="mysql"
+    fi
+    
+    # Add or update IMAGE variables
+    if [ "$images_exist" = true ]; then
+        # Update existing IMAGE variables
+        sed -i.bak "s|^CIS_CONFIG_IMAGE=.*|CIS_CONFIG_IMAGE=${cis_config_image_base}:${cis_config_version}|" "$env_file"
+        sed -i.bak "s|^CIS_MANAGER_IMAGE=.*|CIS_MANAGER_IMAGE=${cis_manager_image_base}:${cis_manager_version}|" "$env_file"
+        sed -i.bak "s|^CIS_PROVIDER_IMAGE=.*|CIS_PROVIDER_IMAGE=${cis_provider_image_base}:${cis_provider_version}|" "$env_file"
+        sed -i.bak "s|^CIS_TRACKER_IMAGE=.*|CIS_TRACKER_IMAGE=${cis_tracker_image_base}:${cis_tracker_version}|" "$env_file"
+        sed -i.bak "s|^MYSQL_IMAGE=.*|MYSQL_IMAGE=${mysql_image_base}:${mysql_version}|" "$env_file"
+    else
+        # Append IMAGE variables to env file
+        cat >> "$env_file" << EOF
+
+# Image variables (added during upgrade for compatibility with new version)
+CIS_CONFIG_IMAGE=${cis_config_image_base}:${cis_config_version}
+CIS_MANAGER_IMAGE=${cis_manager_image_base}:${cis_manager_version}
+CIS_PROVIDER_IMAGE=${cis_provider_image_base}:${cis_provider_version}
+CIS_TRACKER_IMAGE=${cis_tracker_image_base}:${cis_tracker_version}
+MYSQL_IMAGE=${mysql_image_base}:${mysql_version}
+EOF
+    fi
+    
+    # Also update VERSION variables if they're empty
+    if grep -q "^CIS_CONFIG_VERSION=$" "$env_file" 2>/dev/null; then
+        sed -i.bak "s/^CIS_CONFIG_VERSION=$/CIS_CONFIG_VERSION=${cis_config_version}/" "$env_file"
+    fi
+    if grep -q "^CIS_MANAGER_VERSION=$" "$env_file" 2>/dev/null; then
+        sed -i.bak "s/^CIS_MANAGER_VERSION=$/CIS_MANAGER_VERSION=${cis_manager_version}/" "$env_file"
+    fi
+    if grep -q "^CIS_PROVIDER_VERSION=$" "$env_file" 2>/dev/null; then
+        sed -i.bak "s/^CIS_PROVIDER_VERSION=$/CIS_PROVIDER_VERSION=${cis_provider_version}/" "$env_file"
+    fi
+    if grep -q "^CIS_TRACKER_VERSION=$" "$env_file" 2>/dev/null; then
+        sed -i.bak "s/^CIS_TRACKER_VERSION=$/CIS_TRACKER_VERSION=${cis_tracker_version}/" "$env_file"
+    fi
+    
+    msg_success "Env file patched with IMAGE variables from new version"
+    log_silent "Added IMAGE variables from new version: config=${cis_config_version}, manager=${cis_manager_version}, provider=${cis_provider_version}, tracker=${cis_tracker_version}, mysql=${mysql_version}"
+}
+
 # Migrate configuration
 migrate_config() {
     msg_info "Migrating configuration..."
@@ -379,6 +522,23 @@ migrate_config() {
     [[ -f "${OLD_DIR}/.env-bitoarch" ]] && cp "${OLD_DIR}/.env-bitoarch" "${NEW_DIR}/.env-bitoarch"
     [[ -f "${OLD_DIR}/.env-llm-bitoarch" ]] && cp "${OLD_DIR}/.env-llm-bitoarch" "${NEW_DIR}/.env-llm-bitoarch"
     [[ -f "${OLD_DIR}/.bitoarch-config.yaml" ]] && cp "${OLD_DIR}/.bitoarch-config.yaml" "${NEW_DIR}/.bitoarch-config.yaml"
+    
+    # Copy or create deployment type marker
+    if [[ -f "${OLD_DIR}/.deployment-type" ]]; then
+        cp "${OLD_DIR}/.deployment-type" "${NEW_DIR}/.deployment-type"
+        msg_info "Deployment type preserved: $(cat "${NEW_DIR}/.deployment-type")"
+        log_silent "Copied .deployment-type from old installation"
+    else
+        # Old version without k8s support - default to docker-compose
+        echo "docker-compose" > "${NEW_DIR}/.deployment-type"
+        msg_info "Setting deployment type to: docker-compose (default for old versions)"
+        log_silent "Created .deployment-type with docker-compose for backward compatibility"
+    fi
+    
+    # Patch env file with IMAGE variables if missing (for old versions)
+    if [[ -f "$NEW_ENV" ]]; then
+        patch_env_with_images "$NEW_ENV"
+    fi
     
     msg_success "Configuration migrated"
 }
@@ -655,6 +815,135 @@ stop_old_version_standalone() {
     fi
 }
 
+# Kubernetes upgrade functions
+upgrade_kubernetes() {
+    msg_info "Starting Kubernetes upgrade..."
+    
+    local namespace="bito-ai-architect"
+    
+    # Check if Helm release exists
+    if ! helm list -n "$namespace" | grep -q "bitoarch"; then
+        msg_error "Helm release 'bitoarch' not found in namespace $namespace"
+        msg_info "This doesn't appear to be a Kubernetes deployment"
+        exit 1
+    fi
+    
+    cd "$NEW_DIR" || exit 1
+    
+    # Copy deployment type marker
+    echo "kubernetes" > "${NEW_DIR}/.deployment-type"
+    
+    # Regenerate Helm values from migrated .env file
+    msg_info "Generating Helm values from configuration..."
+    
+    # Set SCRIPT_DIR for values-generator.sh
+    export SCRIPT_DIR="$NEW_DIR"
+    
+    # Execute values-generator with better error capture
+    if ! bash "${NEW_DIR}/scripts/values-generator.sh" 2>&1 | tee -a "$LOG_FILE"; then
+        msg_error "Failed to generate Helm values"
+        msg_error "Check log file for details: $LOG_FILE"
+        tail -20 "$LOG_FILE" | grep -i "error" || tail -20 "$LOG_FILE"
+        exit 1
+    fi
+    
+    # Verify values file was created
+    if [[ ! -f "${NEW_DIR}/.bitoarch-values.yaml" ]]; then
+        msg_error "Helm values file not generated"
+        msg_error "The values-generator.sh script completed but didn't create the output file"
+        exit 1
+    fi
+    
+    # Perform Helm upgrade
+    msg_info "Upgrading Helm release..."
+    msg_info "This may take 2-5 minutes (pulling images, updating pods)..."
+    
+    if helm upgrade bitoarch "${NEW_DIR}/helm-bitoarch" \
+        --namespace "$namespace" \
+        --values "${NEW_DIR}/.bitoarch-values.yaml" \
+        --wait \
+        --timeout 10m >> "$LOG_FILE" 2>&1; then
+        msg_success "Helm upgrade completed"
+    else
+        msg_error "Helm upgrade failed"
+        msg_error "Check log file for details: $LOG_FILE"
+        echo ""
+        tail -50 "$LOG_FILE"
+        echo ""
+        msg_info "To rollback: helm rollback bitoarch -n $namespace"
+        exit 1
+    fi
+    
+    log_silent "Kubernetes upgrade completed successfully"
+}
+
+# Check Kubernetes deployment status
+check_kubernetes_services() {
+    msg_info "Verifying Kubernetes deployment..."
+    
+    local namespace="bito-ai-architect"
+    
+    # Wait for pods to be ready
+    local max_attempts=30
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        local ready_pods=$(kubectl get pods -n "$namespace" -o jsonpath='{range .items[?(@.status.conditions[?(@.type=="Ready")].status=="True")]}{.metadata.name}{"\n"}{end}' 2>/dev/null | wc -l | xargs)
+        local total_pods=$(kubectl get pods -n "$namespace" --no-headers 2>/dev/null | wc -l | xargs)
+        
+        if [ "$ready_pods" -eq "$total_pods" ] && [ "$total_pods" -gt 0 ]; then
+            break
+        fi
+        
+        if [ $attempt -eq 1 ]; then
+            msg_info "Waiting for pods to be ready..."
+        fi
+        
+        echo -n "."
+        sleep 10
+        attempt=$((attempt + 1))
+    done
+    echo ""
+    
+    if [ $attempt -gt $max_attempts ]; then
+        msg_warn "Timeout waiting for all pods to be ready"
+    else
+        msg_success "All pods are ready ($ready_pods/$total_pods)"
+    fi
+    
+    # Show pod status
+    echo ""
+    kubectl get pods -n "$namespace" 2>/dev/null | head -11
+    echo ""
+}
+
+# Print Kubernetes success summary
+print_kubernetes_success() {
+    print_header "✅ KUBERNETES UPGRADE COMPLETE"
+    
+    echo -e "${GREEN}✓ Upgrade successful!${NC}"
+    echo ""
+    echo -e "${YELLOW}⚠️  IMPORTANT: Update your PATH to use the new installation:${NC}"
+    echo ""
+    echo -e "   ${BLUE}cd ${NEW_DIR}${NC}"
+    echo ""
+    echo -e "${YELLOW}Verify the deployment:${NC}"
+    echo -e "   ${BLUE}kubectl get pods -n bito-ai-architect${NC}"
+    echo -e "   ${BLUE}bitoarch status${NC}"
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "⚠️  After a successful upgrade, rollback is supported via Helm:"
+    echo -e "   ${YELLOW}helm rollback bitoarch -n bito-ai-architect${NC}"
+    echo ""
+    echo -e "${BLUE}📋 Upgrade Log${NC}"
+    echo -e "   ${LOG_FILE}"
+    echo ""
+    echo -e "${BLUE}🧹 Cleanup Old Installation (after verifying new version)${NC}"
+    echo -e "   ${YELLOW}rm -rf ${OLD_DIR}${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+}
+
 # Cleanup temporary files
 cleanup() {
     [[ -d "$TEMP_DOWNLOAD_DIR" ]] && rm -rf "$TEMP_DOWNLOAD_DIR"
@@ -733,23 +1022,26 @@ main() {
     # Configure and deploy based on mode
     migrate_config
     
-    if [[ "$UPGRADE_MODE" == "standalone" ]]; then
+    if [[ "$UPGRADE_MODE" == "kubernetes" ]]; then
+        # Kubernetes mode: Helm upgrade with rolling update
+        upgrade_kubernetes
+        check_kubernetes_services
+        print_kubernetes_success
+    elif [[ "$UPGRADE_MODE" == "standalone" ]]; then
         # Standalone mode: stop old, start new, verify
         stop_old_version_standalone
         start_new_version_standalone
         wait_for_services
+        check_services
+        print_success
     else
         # Embedded mode: start new, verify, stop old
         start_new_version
         wait_for_services
         check_services
         stop_old_version
+        print_success
     fi
-    
-    check_services
-    
-    # Success
-    print_success
     
     log_silent "=== Upgrade Completed Successfully ==="
     log_silent "New installation: $NEW_DIR"
