@@ -134,6 +134,72 @@ All pods should show `Running` status.
 
 ---
 
+## Accessing services
+
+Port-forwards are exposed on all network interfaces (0.0.0.0) and are accessible from any machine on the network.
+
+### Local access (from the Kubernetes host machine)
+
+```bash
+curl http://localhost:5001/health          # Provider
+curl http://localhost:5002/health          # Manager
+curl http://localhost:5003/health          # Config
+```
+
+### Network access (from other machines on your network)
+
+Get the host machine's IP address:
+
+```bash
+kubectl get nodes -o wide
+# Or: hostname -I (Linux) / ifconfig (macOS)
+```
+
+From another machine on the network:
+
+```bash
+curl http://<host-ip>:5001/health          # Provider
+curl http://<host-ip>:5002/health          # Manager
+curl http://<host-ip>:5003/health          # Config
+curl http://<host-ip>:5005/health          # Tracker
+```
+
+### MCP client configuration
+
+Configure your MCP client (Cursor, Claude Desktop, etc.) to connect from any machine on the network:
+
+```json
+{
+  "mcpServers": {
+    "bito-ai-architect": {
+      "url": "http://<host-ip>:5001/mcp",
+      "apiKey": "<your-mcp-token>"
+    }
+  }
+}
+```
+
+Replace `<host-ip>` with the Kubernetes host machine's IP address (e.g., 192.168.1.100).
+
+### Security considerations
+
+> **Important Security Notes:**
+>
+> - Port-forwards use HTTP (not HTTPS) - traffic is unencrypted
+> - Services are accessible from any machine that can reach the host
+>
+> **For production internet-facing deployments:**
+> - Use firewall rules to restrict access to trusted IPs
+> - Consider using Kubernetes Ingress with TLS/SSL
+> - Implement VPN for remote access
+> - Use network policies to limit pod-to-pod traffic
+
+### Alternative: Kubernetes Ingress (production)
+
+For production deployments, configure a Kubernetes Ingress Controller with TLS/SSL instead of using port-forwards. This provides secure HTTPS access with proper certificate management.
+
+---
+
 ## Viewing logs
 
 ### Live logs via kubectl
