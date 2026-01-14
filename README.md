@@ -68,7 +68,10 @@
       <a href="#8-troubleshooting-guide">Troubleshooting guide</a>
     </li>
     <li>
-      <a href="#9-support--contact">Support & contact</a>
+      <a href="#9-upgrading-ai-architect">Upgrading AI Architect</a>
+    </li>
+    <li>
+      <a href="#10-support--contact">Support & contact</a>
     </li>
   </ol>
 </details>
@@ -215,7 +218,7 @@ Once the indexing is complete, you can configure AI Architect MCP server in any 
 
 ### Step 1- Download AI Architect
 
-Download the latest version of AI Architect package from our **[GitHub repository](https://github.com/gitbito/ai-architect/blob/main/bito-ai-architect-1.2.0.tar.gz)**.
+Download the latest version of AI Architect package from our **[GitHub repository](https://github.com/gitbito/ai-architect/releases)**.
 
 ---
 
@@ -662,7 +665,7 @@ To switch between deployment types (Docker to Kubernetes or Kubernetes to Docker
 
 <!-- Support & contact -->
 
-## 9. Support & contact
+## 10. Support & contact
 
 For comprehensive information and guidance on the AI Architect, including installation and configuration instructions, please refer to our detailed **[documentation available here](https://docs.bito.ai/ai-architect/overview)**. Should you require further assistance or have any inquiries, our support team is readily available to assist you.
 
