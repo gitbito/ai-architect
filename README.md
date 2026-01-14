@@ -68,7 +68,10 @@
       <a href="#8-troubleshooting-guide">Troubleshooting guide</a>
     </li>
     <li>
-      <a href="#9-support--contact">Support & contact</a>
+      <a href="#9-upgrading-ai-architect">Upgrading AI Architect</a>
+    </li>
+    <li>
+      <a href="#10-support--contact">Support & contact</a>
     </li>
   </ol>
 </details>
@@ -662,7 +665,7 @@ To switch between deployment types (Docker to Kubernetes or Kubernetes to Docker
 
 <!-- Support & contact -->
 
-## 9. Support & contact
+## 10. Support & contact
 
 For comprehensive information and guidance on the AI Architect, including installation and configuration instructions, please refer to our detailed **[documentation available here](https://docs.bito.ai/ai-architect/overview)**. Should you require further assistance or have any inquiries, our support team is readily available to assist you.
 
