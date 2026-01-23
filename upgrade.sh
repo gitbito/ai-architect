@@ -539,7 +539,48 @@ migrate_config() {
     if [[ -f "$NEW_ENV" ]]; then
         patch_env_with_images "$NEW_ENV"
     fi
+
+    # Extract latest provider default.json from new package image
+    # This ensures the new version's config is used for both Docker and K8s
+    local deployment_type="docker-compose"
+    if [[ -f "${NEW_DIR}/.deployment-type" ]]; then
+        deployment_type=$(cat "${NEW_DIR}/.deployment-type")
+    fi
     
+    if [[ "$deployment_type" == "docker-compose" ]]; then
+        msg_info "Extracting latest provider configuration from new package..."
+        local docker_config_path="${NEW_DIR}/services/cis-provider/config/default.json"
+        
+        # Source env to get provider image
+        if [[ -f "$NEW_ENV" ]]; then
+            source "$NEW_ENV"
+            local provider_image="${CIS_PROVIDER_IMAGE:-}"
+            
+            if [[ -n "$provider_image" ]]; then
+                # Pull the image first
+                if docker pull "$provider_image" >> "$LOG_FILE" 2>&1; then
+                    # Create temp container and extract config
+                    if docker create --name temp-provider-config-upgrade "$provider_image" >/dev/null 2>&1; then
+                        if docker cp temp-provider-config-upgrade:/opt/bito/xmcp/config/default.json "$docker_config_path" 2>> "$LOG_FILE"; then
+                            chmod 666 "$docker_config_path" 2>/dev/null || true
+                            msg_success "Provider configuration extracted from new image"
+                        else
+                            msg_warn "Could not extract provider config from image, using packaged config"
+                        fi
+                        docker rm temp-provider-config-upgrade >/dev/null 2>&1 || true
+                    else
+                        msg_warn "Could not create temp container for config extraction"
+                    fi
+                else
+                    msg_warn "Could not pull provider image for config extraction"
+                fi
+            fi
+        fi
+    else
+        # Kubernetes: config is already in helm-bitoarch/services/cis-provider/config/default.json from package
+        msg_info "Kubernetes deployment - using packaged provider configuration"
+    fi
+
     msg_success "Configuration migrated"
 }
 
@@ -839,8 +880,12 @@ upgrade_kubernetes() {
     # Set SCRIPT_DIR for values-generator.sh
     export SCRIPT_DIR="$NEW_DIR"
     
-    # Execute values-generator with better error capture
-    if ! bash "${NEW_DIR}/scripts/values-generator.sh" 2>&1 | tee -a "$LOG_FILE"; then
+    # Source the values-generator and call with imagePullPolicy=Always
+    # shellcheck disable=SC1090
+    source "${NEW_DIR}/scripts/values-generator.sh"
+    
+    # Execute values-generator function with Always pull policy for upgrades
+    if ! generate_k8s_values_from_env "Always" 2>&1 | tee -a "$LOG_FILE"; then
         msg_error "Failed to generate Helm values"
         msg_error "Check log file for details: $LOG_FILE"
         tail -20 "$LOG_FILE" | grep -i "error" || tail -20 "$LOG_FILE"
@@ -864,6 +909,25 @@ upgrade_kubernetes() {
         --wait \
         --timeout 10m >> "$LOG_FILE" 2>&1; then
         msg_success "Helm upgrade completed"
+        
+        # Force rollout restart to ensure pods pull latest images with imagePullPolicy=Always
+        # Critical when upgrading to same version but with updated images in registry
+        kubectl rollout restart deployment -n "$namespace" -l "app.kubernetes.io/name=bitoarch" >> "$LOG_FILE" 2>&1 || true
+        
+        log_silent "Pod rollout initiated to force image pull"
+        
+        # CRITICAL: Wait for ALL rollouts to complete before starting port-forwards
+        # This prevents race condition where port-forward connects to terminating pod
+        msg_info "Waiting for all deployment rollouts to complete..."
+        for component in provider manager config tracker mysql; do
+            msg_info "  Waiting for ai-architect-${component} rollout..."
+            if kubectl rollout status deployment/ai-architect-${component} -n "$namespace" --timeout=180s >> "$LOG_FILE" 2>&1; then
+                log_silent "Rollout complete: ai-architect-${component}"
+            else
+                msg_warn "  Rollout may not have completed for ai-architect-${component}"
+            fi
+        done
+        msg_success "All deployment rollouts completed"
     else
         msg_error "Helm upgrade failed"
         msg_error "Check log file for details: $LOG_FILE"
@@ -875,6 +939,154 @@ upgrade_kubernetes() {
     fi
     
     log_silent "Kubernetes upgrade completed successfully"
+    
+    # CRITICAL: Wait for pods to be ready after rollout restart
+    # Inline implementation to work regardless of kubernetes-manager.sh version
+    msg_info "Waiting for pods to be ready after rollout restart..."
+    local max_wait=180
+    local waited=0
+    local services=("mysql" "config" "manager" "provider" "tracker")
+    
+    while [ $waited -lt $max_wait ]; do
+        local all_ready=true
+        for service in "${services[@]}"; do
+            local ready=$(kubectl get pods -n "$namespace" -l "app.kubernetes.io/component=$service" \
+                -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "False")
+            if [ "$ready" != "True" ]; then
+                all_ready=false
+                break
+            fi
+        done
+        
+        if [ "$all_ready" = true ]; then
+            msg_success "All pods are ready"
+            break
+        fi
+        
+        echo -n "."
+        sleep 5
+        waited=$((waited + 5))
+    done
+    
+    if [ $waited -ge $max_wait ]; then
+        msg_warn "Some pods may still be initializing"
+    fi
+    echo ""
+    
+    # Load environment variables from new installation for port configuration
+    set -a
+    source "${NEW_DIR}/.env-bitoarch" 2>/dev/null || true
+    set +a
+    
+    # Setup port-forwards for immediate CLI access
+    # INLINE implementation to work regardless of kubernetes-manager.sh version in old installation
+    msg_info "Setting up port-forwards to new pods..."
+    
+    # Kill any existing port-forwards
+    pkill -f "kubectl.*port-forward.*${namespace}" 2>/dev/null || true
+    sleep 2
+    
+    # Read port configuration
+    local provider_ext="${CIS_PROVIDER_EXTERNAL_PORT:-5001}"
+    local manager_ext="${CIS_MANAGER_EXTERNAL_PORT:-5002}"
+    local config_ext="${CIS_CONFIG_EXTERNAL_PORT:-5003}"
+    local mysql_ext="${MYSQL_EXTERNAL_PORT:-5004}"
+    local tracker_ext="${CIS_TRACKER_EXTERNAL_PORT:-5005}"
+    
+    local provider_int="${XMCP_HTTP_PORT:-8080}"
+    local manager_int="${CIS_MANAGER_PORT:-9090}"
+    local config_int="${CIS_CONFIG_PORT:-8081}"
+    local mysql_int="${MYSQL_PORT:-3306}"
+    local tracker_int="${CIS_TRACKING_PORT:-9920}"
+    
+    # Launch port-forwards with proper daemonization
+    # Use: nohup + stdin from /dev/null + disown to fully detach from shell
+    nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-provider "${provider_ext}:${provider_int}" </dev/null >> "$LOG_FILE" 2>&1 &
+    disown 2>/dev/null || true
+    sleep 0.5
+    
+    nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-manager "${manager_ext}:${manager_int}" </dev/null >> "$LOG_FILE" 2>&1 &
+    disown 2>/dev/null || true
+    sleep 0.5
+    
+    nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-config "${config_ext}:${config_int}" </dev/null >> "$LOG_FILE" 2>&1 &
+    disown 2>/dev/null || true
+    sleep 0.5
+    
+    nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-mysql "${mysql_ext}:${mysql_int}" </dev/null >> "$LOG_FILE" 2>&1 &
+    disown 2>/dev/null || true
+    sleep 0.5
+    
+    nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-tracker "${tracker_ext}:${tracker_int}" </dev/null >> "$LOG_FILE" 2>&1 &
+    disown 2>/dev/null || true
+    sleep 2
+    
+    # Verify and retry port-forwards with health check
+    local max_verify_attempts=3
+    local verify_attempt=1
+    
+    while [ $verify_attempt -le $max_verify_attempts ]; do
+        local pf_count=$(ps aux | grep "kubectl port-forward" | grep -E "(-n |--namespace=|-n=)$namespace" | grep -v grep | wc -l | xargs)
+        
+        if [ "$pf_count" -ge 5 ]; then
+            msg_success "Port-forwards established (5/5 services)"
+            break
+        fi
+        
+        msg_warn "Only $pf_count/5 port-forwards running (attempt $verify_attempt)"
+        
+        # Restart missing port-forwards
+        if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-provider" | grep -v grep >/dev/null 2>&1; then
+            log_silent "Restarting provider port-forward"
+            nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-provider "${provider_ext}:${provider_int}" </dev/null >> "$LOG_FILE" 2>&1 &
+            disown 2>/dev/null || true
+        fi
+        
+        if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-manager" | grep -v grep >/dev/null 2>&1; then
+            log_silent "Restarting manager port-forward"
+            nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-manager "${manager_ext}:${manager_int}" </dev/null >> "$LOG_FILE" 2>&1 &
+            disown 2>/dev/null || true
+        fi
+        
+        if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-config" | grep -v grep >/dev/null 2>&1; then
+            log_silent "Restarting config port-forward"
+            nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-config "${config_ext}:${config_int}" </dev/null >> "$LOG_FILE" 2>&1 &
+            disown 2>/dev/null || true
+        fi
+        
+        if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-mysql" | grep -v grep >/dev/null 2>&1; then
+            log_silent "Restarting mysql port-forward"
+            nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-mysql "${mysql_ext}:${mysql_int}" </dev/null >> "$LOG_FILE" 2>&1 &
+            disown 2>/dev/null || true
+        fi
+        
+        if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-tracker" | grep -v grep >/dev/null 2>&1; then
+            log_silent "Restarting tracker port-forward"
+            nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-tracker "${tracker_ext}:${tracker_int}" </dev/null >> "$LOG_FILE" 2>&1 &
+            disown 2>/dev/null || true
+        fi
+        
+        sleep 2
+        verify_attempt=$((verify_attempt + 1))
+    done
+    
+    # Final health check - test actual connectivity
+    msg_info "Verifying port-forward connectivity..."
+    local health_ok=true
+    
+    for port in $provider_ext $manager_ext $config_ext $tracker_ext; do
+        if ! curl -s --connect-timeout 2 "http://localhost:$port/health" >/dev/null 2>&1; then
+            health_ok=false
+            log_silent "Port $port health check failed"
+        fi
+    done
+    
+    if [ "$health_ok" = true ]; then
+        msg_success "All port-forwards healthy and responding"
+    else
+        msg_warn "Some port-forwards may not be healthy"
+        msg_info "If port-forwards die, restart with: cd ${NEW_DIR} && ./setup.sh --restart"
+    fi
 }
 
 # Check Kubernetes deployment status
@@ -927,14 +1139,11 @@ print_kubernetes_success() {
     echo ""
     echo -e "   ${BLUE}cd ${NEW_DIR}${NC}"
     echo ""
-    echo -e "${YELLOW}Verify the deployment:${NC}"
-    echo -e "   ${BLUE}kubectl get pods -n bito-ai-architect${NC}"
+    echo -e "${YELLOW}Verify Upgrade:${NC}"
     echo -e "   ${BLUE}bitoarch status${NC}"
+    echo -e "   ${BLUE}bitoarch index-status${NC}"
     echo ""
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "⚠️  After a successful upgrade, rollback is supported via Helm:"
-    echo -e "   ${YELLOW}helm rollback bitoarch -n bito-ai-architect${NC}"
-    echo ""
     echo -e "${BLUE}📋 Upgrade Log${NC}"
     echo -e "   ${LOG_FILE}"
     echo ""
