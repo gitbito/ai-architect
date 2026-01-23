@@ -406,16 +406,31 @@ bitoarch index-repos
 
 ## 5. Setting up AI Architect MCP in coding agents
 
-Configure the MCP server in supported AI coding tools such as Claude Code, Cursor, Windsurf, and GitHub Copilot (VS Code).
+Now that AI Architect is installed and your repositories are indexed, the next step is to connect it to your AI coding tools (such as Claude Code, Cursor, Windsurf, GitHub Copilot, etc.) through the Model Context Protocol (MCP).
 
-Select your AI coding tool from the options below and follow the step-by-step installation guide to set up AI Architect seamlessly:
+### Quick setup (recommended)
+**Save time with our automated installer!** We provide a one-command setup that automatically configures AI Architect for all compatible AI coding tools on your system.
+
+The automated installer will:
+
+- Detect all supported AI tools installed on your system
+- Configure them automatically with your MCP credentials
+- Get you up and running in seconds instead of manually configuring each tool
+
+👉 [Try our Quick MCP Integration Guide](https://docs.bito.ai/ai-architect/quick-mcp-integration-with-ai-coding-agents) for automated setup across all your tools.
+
+### Manual setup
+If you prefer hands-on control over your configuration or encounter issues with automated setup, we provide detailed step-by-step guides for each supported AI coding tool:
 
 - [Guide for Claude Code](https://docs.bito.ai/ai-architect/guide-for-claude-code)
+- [Guide for Claude Desktop](https://docs.bito.ai/ai-architect/guide-for-claude-desktop)
+- [Guide for Claude.ai (Web)](https://docs.bito.ai/ai-architect/guide-for-claude.ai-web)
 - [Guide for Cursor](https://docs.bito.ai/ai-architect/guide-for-cursor)
 - [Guide for Windsurf](https://docs.bito.ai/ai-architect/guide-for-windsurf)
 - [Guide for GitHub Copilot (VS Code)](https://docs.bito.ai/ai-architect/guide-for-github-copilot-vs-code)
 - [Guide for Junie (JetBrains)](https://docs.bito.ai/ai-architect/guide-for-junie-jetbrains)
 - [Guide for JetBrains AI Assistant](https://docs.bito.ai/ai-architect/guide-for-jetbrains-ai-assistant)
+- [Guide for ChatGPT (Web & Desktop)](https://docs.bito.ai/ai-architect/guide-for-chatgpt-web-and-desktop)
 
 ---
 
