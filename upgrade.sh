@@ -423,6 +423,66 @@ extract_package() {
     log_silent "Verified package structure (setup.sh, bitoarch, scripts/lib exist)"
 }
 
+# Merge new config keys from default env file into existing env file
+# This ensures new configuration options added in newer versions are available
+# with their default values while preserving user's existing configuration
+merge_new_env_configs() {
+    local env_file="$1"
+    local default_env_file="${NEW_DIR}/.env-bitoarch.default"
+    
+    if [[ ! -f "$default_env_file" ]]; then
+        log_silent "Skipping env config merge - default file not found: $default_env_file"
+        return 0
+    fi
+    
+    if [[ ! -f "$env_file" ]]; then
+        log_silent "Skipping env config merge - env file not found: $env_file"
+        return 0
+    fi
+    
+    log_silent "Checking for new configuration options in newer version..."
+    
+    local new_keys_added=0
+    local temp_additions=$(mktemp)
+    
+    # Read default env file line by line
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Skip empty lines and comments
+        [[ -z "$line" ]] && continue
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        
+        # Extract key from KEY=VALUE format
+        if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)= ]]; then
+            local key="${BASH_REMATCH[1]}"
+            
+            # Check if this key already exists in the user's env file
+            if ! grep -q "^${key}=" "$env_file" 2>/dev/null; then
+                # Key doesn't exist - add it with default value
+                echo "$line" >> "$temp_additions"
+                new_keys_added=$((new_keys_added + 1))
+                log_silent "New config key found: $key"
+            fi
+        fi
+    done < "$default_env_file"
+    
+    # If new keys were found, append them to the env file
+    if [[ $new_keys_added -gt 0 ]]; then
+        echo "" >> "$env_file"
+        echo "# ============================================================================" >> "$env_file"
+        echo "# NEW CONFIGURATION OPTIONS (added during upgrade from version ${CURRENT_VERSION:-unknown})" >> "$env_file"
+        echo "# Added on: $(date)" >> "$env_file"
+        echo "# ============================================================================" >> "$env_file"
+        cat "$temp_additions" >> "$env_file"
+        
+        log_silent "Merged $new_keys_added new config keys from default to env file"
+    else
+        log_silent "No new config keys to merge - env file is up to date"
+    fi
+    
+    rm -f "$temp_additions"
+    return 0
+}
+
 # Patch env file with IMAGE variables from new version
 patch_env_with_images() {
     local env_file="$1"
@@ -508,6 +568,9 @@ EOF
         sed -i.bak "s/^CIS_TRACKER_VERSION=$/CIS_TRACKER_VERSION=${cis_tracker_version}/" "$env_file"
     fi
     
+    # Clean up sed backup files
+    rm -f "${env_file}.bak"
+    
     msg_success "Env file patched with IMAGE variables from new version"
     log_silent "Added IMAGE variables from new version: config=${cis_config_version}, manager=${cis_manager_version}, provider=${cis_provider_version}, tracker=${cis_tracker_version}, mysql=${mysql_version}"
 }
@@ -533,6 +596,11 @@ migrate_config() {
         echo "docker-compose" > "${NEW_DIR}/.deployment-type"
         msg_info "Setting deployment type to: docker-compose (default for old versions)"
         log_silent "Created .deployment-type with docker-compose for backward compatibility"
+    fi
+    
+    # Merge new config keys from default env file (adds missing keys with default values)
+    if [[ -f "$NEW_ENV" ]]; then
+        merge_new_env_configs "$NEW_ENV"
     fi
     
     # Patch env file with IMAGE variables if missing (for old versions)
@@ -577,8 +645,37 @@ migrate_config() {
             fi
         fi
     else
-        # Kubernetes: config is already in helm-bitoarch/services/cis-provider/config/default.json from package
-        msg_info "Kubernetes deployment - using packaged provider configuration"
+        # Kubernetes: extract latest default.json from image to helm chart path for ConfigMap
+        msg_info "Extracting latest provider configuration for Kubernetes deployment..."
+        local k8s_config_path="${NEW_DIR}/helm-bitoarch/services/cis-provider/config/default.json"
+        
+        if [[ -f "$NEW_ENV" ]]; then
+            source "$NEW_ENV"
+            local provider_image="${CIS_PROVIDER_IMAGE:-}"
+            
+            if [[ -n "$provider_image" ]]; then
+                if docker pull "$provider_image" >> "$LOG_FILE" 2>&1; then
+                    if docker create --name temp-provider-config-k8s-upgrade "$provider_image" >/dev/null 2>&1; then
+                        if docker cp temp-provider-config-k8s-upgrade:/opt/bito/xmcp/config/default.json "$k8s_config_path" 2>> "$LOG_FILE"; then
+                            chmod 666 "$k8s_config_path" 2>/dev/null || true
+                            msg_success "Provider configuration extracted from new image for Kubernetes"
+                            log_silent "Extracted default.json to: $k8s_config_path"
+                        else
+                            msg_warn "Could not extract provider config from image, using packaged config"
+                        fi
+                        docker rm temp-provider-config-k8s-upgrade >/dev/null 2>&1 || true
+                    else
+                        msg_warn "Could not create temp container for config extraction"
+                    fi
+                else
+                    msg_warn "Could not pull provider image for config extraction"
+                fi
+            else
+                msg_warn "Provider image not set in env, using packaged config"
+            fi
+        else
+            msg_warn "Env file not found, using packaged config"
+        fi
     fi
 
     msg_success "Configuration migrated"
