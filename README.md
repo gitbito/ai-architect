@@ -222,7 +222,7 @@ Before proceeding with the installation, ensure **Docker Desktop / Docker Servic
 
 Open your terminal:
 - **Linux/macOS:** Use your standard terminal application
-- **Windows (WSL2):** Launch the Ubuntu application from the Start menu
+- **Windows (WSL2):** Launch the **Ubuntu** application from the **Start menu**
 
 Execute the installation command:
 ```
@@ -238,7 +238,7 @@ The installation script will:
 
 ---
 
-### Step 4- Configuration
+### Step 2- Configuration
 
 The setup script will guide you through configuring AI Architect with your Git provider and LLM credentials. The process is interactive and will prompt you for the necessary information step by step.
 
@@ -258,7 +258,7 @@ The setup script will guide you through configuring AI Architect with your Git p
 
 ---
 
-### Step 5- Add repositories
+### Step 3- Add repositories
 
 Once your Git account is connected successfully, Bito automatically detects your repositories and populates the `/usr/local/etc/bitoarch/.bitoarch-config.yaml` file with an initial list. Review this file to confirm which repositories you want to index — feel free to remove any that should be excluded or add others as needed. Once the list looks correct, save the file, and continue with the steps below.
 
@@ -290,7 +290,7 @@ bitoarch add-repos .bitoarch-config.yaml
 ```
 ---
 
-### Step 6- Start indexing
+### Step 4- Start indexing
 
 Once your repositories are configured, AI Architect needs to analyze and index them to build the knowledge graph. This process scans your codebase structure, dependencies, and relationships to enable context-aware AI assistance.
 
@@ -306,7 +306,7 @@ Once the indexing is complete, you can configure AI Architect MCP server in any 
 
 ---
 
-### Step 7- Check indexing status
+### Step 5- Check indexing status
 
 Run this command to check the status of your indexing:
 
@@ -342,7 +342,7 @@ Overall Status: in-progress
 
 ---
 
-### Step 8- Check MCP server details
+### Step 6- Check MCP server details
 
 To manually check the MCP server details (e.g. **Bito MCP URL** and **Bito MCP Access Token**), use the following command:
 
