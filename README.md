@@ -319,27 +319,26 @@ bitoarch index-status
 **Example output:**
 
 ```
-Configured Repositories:
-  Total: 3
+Configured Repositories
 
-Repository Index Status:
-State: ⏳ running
-  Progress: 0 / 1 completed
-  In Progress: 1
+  Configured: 1
+  Note: Config can change while an index session is running.
 
-Workspace Index Progress:
-State: ⏳ running
-  Progress: 1 / 2 completed
-  In Progress: 1
+Index Status (Repo-level)
 
-Overall Status: in-progress
+  State: ✓ success
+  Progress: 1 / 1 completed
+
+Index Status (Cross-Repo)
+
+  State: ✓ success
 ```
 
 **What each section represents:**
 
 - **Configured Repositories:** Shows how many repositories are added in your config file for indexing.
-- **Repository Index Status:** Shows the indexing progress for each individual repository.
-- **Workspace Index Progress:** Shows the status of indexes that combine and process information across multiple repositories.
+- **Index Status (Repo-level):** Shows the indexing progress for each individual repository.
+- **Index Status (Cross-Repo):** Shows the status of indexes that combine and process information across multiple repositories.
 - **Overall Status:** Provides a single summary indicating whether indexing is still running, completed successfully, or failed.
 
 ---
@@ -488,8 +487,8 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 |---------|-------------|---------|
 | `bitoarch add-repo <namespace>` | Add single repository | `bitoarch add-repo myorg/myrepo` |
 | `bitoarch remove-repo <namespace>` | Remove repository | `bitoarch remove-repo myorg/myrepo` |
-| `bitoarch add-repos <file>` | Load configuration from YAML | `bitoarch add-repos .bitoarch-config.yaml` |
-| `bitoarch update-repos <file>` | Update configuration from YAML | `bitoarch update-repos .bitoarch-config.yaml` |
+| `bitoarch add-repos <file>` | Load configuration from YAML | `bitoarch add-repos /usr/local/etc/bitoarch/.bitoarch-config.yaml` |
+| `bitoarch update-repos <file>` | Update configuration from YAML | `bitoarch update-repos /usr/local/etc/bitoarch/.bitoarch-config.yaml` |
 | `bitoarch repo-info <name>` | Get detailed repository info | `bitoarch repo-info myrepo --dependencies` |
 
 ### Service operations
