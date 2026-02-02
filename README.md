@@ -262,6 +262,8 @@ The setup script will guide you through configuring AI Architect with your Git p
 
 Once your Git account is connected successfully, Bito automatically detects your repositories and populates the `/usr/local/etc/bitoarch/.bitoarch-config.yaml` file with an initial list. Review this file to confirm which repositories you want to index — feel free to remove any that should be excluded or add others as needed. Once the list looks correct, save the file, and continue with the steps below.
 
+> For versions older than 1.4.0, configuration file can be found in installation directory.
+
 Below is an example of how the `.bitoarch-config.yaml` file is structured:
 
 ```yaml
@@ -286,7 +288,7 @@ Once you select an option, your **Bito MCP URL** and **Bito MCP Access Token** w
 To manually apply the configuration, run this command:
 
 ```bash
-bitoarch add-repos .bitoarch-config.yaml
+bitoarch add-repos /usr/local/etc/bitoarch/.bitoarch-config.yaml
 ```
 ---
 
@@ -374,13 +376,13 @@ You can update the repository list and re-index anytime after the initial setup 
 Edit `/usr/local/etc/bitoarch/.bitoarch-config.yaml` file to add/remove repositories:
 
 ```bash
-vim .bitoarch-config.yaml
+vim /usr/local/etc/bitoarch/.bitoarch-config.yaml
 ```
 
 To apply the changes, run this command:
 
 ```bash
-bitoarch update-repos .bitoarch-config.yaml
+bitoarch update-repos /usr/local/etc/bitoarch/.bitoarch-config.yaml
 ```
 
 Start the re-indexing process using this command:
