@@ -134,10 +134,27 @@ EOF
 
 # Detect deployment type
 detect_deployment_type() {
-    if [[ -f "${OLD_DIR}/.deployment-type" ]]; then
-        DEPLOYMENT_TYPE=$(cat "${OLD_DIR}/.deployment-type")
+    # Check multiple locations for .deployment-type file
+    # For 1.4.x+: file is in /usr/local or ~/.local (standard paths)
+    # For older versions (1.3.x): file is in OLD_DIR
+    local deployment_type_file=""
+    
+    if [[ -f "${OLD_DIR}/.deployment-type" ]] && [[ ! -L "${OLD_DIR}/.deployment-type" ]]; then
+        # Regular file in OLD_DIR (1.3.x or older)
+        deployment_type_file="${OLD_DIR}/.deployment-type"
+        log_silent "Found .deployment-type in OLD_DIR (regular file)"
+    elif [[ -f "/usr/local/etc/bitoarch/.deployment-type" ]]; then
+        deployment_type_file="/usr/local/etc/bitoarch/.deployment-type"
+        log_silent "Found .deployment-type in /usr/local/etc/bitoarch"
+    elif [[ -f "${HOME}/.local/bitoarch/etc/.deployment-type" ]]; then
+        deployment_type_file="${HOME}/.local/bitoarch/etc/.deployment-type"
+        log_silent "Found .deployment-type in ~/.local/bitoarch/etc"
+    fi
+    
+    if [[ -n "$deployment_type_file" ]]; then
+        DEPLOYMENT_TYPE=$(cat "$deployment_type_file")
         msg_info "Detected deployment type: $DEPLOYMENT_TYPE"
-        log_silent "Deployment type: $DEPLOYMENT_TYPE"
+        log_silent "Deployment type from $deployment_type_file: $DEPLOYMENT_TYPE"
     else
         DEPLOYMENT_TYPE="docker-compose"
         msg_info "No deployment type marker found, assuming: docker-compose"
@@ -317,8 +334,30 @@ verify_old_installation() {
         exit 1
     fi
     
-    if [[ ! -f "$OLD_ENV" ]]; then
-        msg_error "Configuration not found: $OLD_ENV"
+    # Check for config files in multiple locations
+    # For 1.4.x+: files might be in /usr/local or ~/.local (standard paths)
+    # For older versions (1.3.x): files are in OLD_DIR
+    local config_found=false
+    if [[ -f "${OLD_DIR}/.env-bitoarch" ]] && [[ ! -L "${OLD_DIR}/.env-bitoarch" ]]; then
+        # Regular file in OLD_DIR (1.3.x or older)
+        config_found=true
+        log_silent "Config found in OLD_DIR (regular file)"
+    elif [[ -f "/usr/local/etc/bitoarch/.env-bitoarch" ]]; then
+        config_found=true
+        log_silent "Config found in /usr/local/etc/bitoarch"
+    elif [[ -f "${HOME}/.local/bitoarch/etc/.env-bitoarch" ]]; then
+        config_found=true
+        log_silent "Config found in ~/.local/bitoarch/etc"
+    elif [[ -L "${OLD_DIR}/.env-bitoarch" ]]; then
+        # Symlink in OLD_DIR - follow it to check actual file
+        if [[ -f "${OLD_DIR}/.env-bitoarch" ]]; then
+            config_found=true
+            log_silent "Config found via symlink in OLD_DIR"
+        fi
+    fi
+    
+    if [[ "$config_found" == "false" ]]; then
+        msg_error "Configuration not found"
         exit 1
     fi
     
@@ -581,16 +620,45 @@ migrate_config() {
     
     NEW_ENV="${NEW_DIR}/.env-bitoarch"
     
-    # Copy env files
-    [[ -f "${OLD_DIR}/.env-bitoarch" ]] && cp "${OLD_DIR}/.env-bitoarch" "${NEW_DIR}/.env-bitoarch"
-    [[ -f "${OLD_DIR}/.env-llm-bitoarch" ]] && cp "${OLD_DIR}/.env-llm-bitoarch" "${NEW_DIR}/.env-llm-bitoarch"
-    [[ -f "${OLD_DIR}/.bitoarch-config.yaml" ]] && cp "${OLD_DIR}/.bitoarch-config.yaml" "${NEW_DIR}/.bitoarch-config.yaml"
+    # Determine config source directory
+    # For 1.4.x+: configs are in /usr/local or ~/.local (standard paths)
+    # For older versions (1.3.x): configs are regular files in OLD_DIR
+    local config_source="$OLD_DIR"
+    
+    if [[ -f "${OLD_DIR}/.env-bitoarch" ]] && [[ ! -L "${OLD_DIR}/.env-bitoarch" ]]; then
+        # Regular file in OLD_DIR (1.3.x or older) - use OLD_DIR
+        config_source="$OLD_DIR"
+        log_silent "Using config from OLD_DIR (regular file - 1.3.x installation)"
+    elif [[ -f "/usr/local/etc/bitoarch/.env-bitoarch" ]]; then
+        # 1.4.x+ installation with configs in /usr/local
+        config_source="/usr/local/etc/bitoarch"
+        log_silent "Using config from /usr/local/etc/bitoarch (1.4.x+ installation)"
+    elif [[ -f "${HOME}/.local/bitoarch/etc/.env-bitoarch" ]]; then
+        # 1.4.x+ installation with configs in ~/.local
+        config_source="${HOME}/.local/bitoarch/etc"
+        log_silent "Using config from ~/.local/bitoarch/etc (1.4.x+ installation)"
+    elif [[ -L "${OLD_DIR}/.env-bitoarch" ]] && [[ -f "${OLD_DIR}/.env-bitoarch" ]]; then
+        # Symlink in OLD_DIR that points to valid file - follow it
+        config_source="$OLD_DIR"
+        log_silent "Using config from OLD_DIR (symlink - 1.4.x+ installation)"
+    fi
+    
+    msg_info "Config source: $config_source"
+    
+    # Copy env files from detected source
+    [[ -f "${config_source}/.env-bitoarch" ]] && cp "${config_source}/.env-bitoarch" "${NEW_DIR}/.env-bitoarch"
+    [[ -f "${config_source}/.env-llm-bitoarch" ]] && cp "${config_source}/.env-llm-bitoarch" "${NEW_DIR}/.env-llm-bitoarch"
+
+    # Copy repo config
+    if [[ -f "${config_source}/.bitoarch-config.yaml" ]]; then
+        cp "${config_source}/.bitoarch-config.yaml" "${NEW_DIR}/.bitoarch-config.yaml"
+    fi
     
     # Copy or create deployment type marker
-    if [[ -f "${OLD_DIR}/.deployment-type" ]]; then
-        cp "${OLD_DIR}/.deployment-type" "${NEW_DIR}/.deployment-type"
+    if [[ -f "${config_source}/.deployment-type" ]]; then
+        cp "${config_source}/.deployment-type" "${NEW_DIR}/.deployment-type"
         msg_info "Deployment type preserved: $(cat "${NEW_DIR}/.deployment-type")"
-        log_silent "Copied .deployment-type from old installation"
+        log_silent "Copied .deployment-type from $config_source"
     else
         # Old version without k8s support - default to docker-compose
         echo "docker-compose" > "${NEW_DIR}/.deployment-type"
@@ -614,16 +682,16 @@ migrate_config() {
     if [[ -f "${NEW_DIR}/.deployment-type" ]]; then
         deployment_type=$(cat "${NEW_DIR}/.deployment-type")
     fi
-    
+
     if [[ "$deployment_type" == "docker-compose" ]]; then
         msg_info "Extracting latest provider configuration from new package..."
         local docker_config_path="${NEW_DIR}/services/cis-provider/config/default.json"
-        
+
         # Source env to get provider image
         if [[ -f "$NEW_ENV" ]]; then
             source "$NEW_ENV"
             local provider_image="${CIS_PROVIDER_IMAGE:-}"
-            
+
             if [[ -n "$provider_image" ]]; then
                 # Pull the image first
                 if docker pull "$provider_image" >> "$LOG_FILE" 2>&1; then
@@ -786,6 +854,26 @@ start_new_version() {
     
     configure_volumes
     
+    # CRITICAL: Sync migrated configs to standard location BEFORE running setup.sh
+    # This ensures setup.sh reads the correct (old) credentials
+    # shellcheck disable=SC1090
+    source "${NEW_DIR}/scripts/lib/path-manager.sh"
+    init_paths
+
+    local standard_config_dir="$(get_config_dir)"
+    msg_info "Syncing migrated configs to standard location: $standard_config_dir"
+    mkdir -p "$standard_config_dir"
+
+    # Copy all config files from NEW_DIR (which has old installation's configs)
+    for config_file in .env-bitoarch .env-llm-bitoarch .bitoarch-config.yaml .deployment-type; do
+        if [[ -f "${NEW_DIR}/${config_file}" ]]; then
+            cp "${NEW_DIR}/${config_file}" "$standard_config_dir/${config_file}"
+            log_silent "Synced ${config_file} to $standard_config_dir"
+        fi
+    done
+
+    msg_success "All configs synced to standard location with correct credentials"
+
     msg_info "Running: ./setup.sh --from-existing-config"
     msg_info "This may take 2-5 minutes (starting containers)..."
     
@@ -835,13 +923,21 @@ start_new_version_standalone() {
     msg_info "This may take 2-5 minutes (pulling images, starting containers)..."
     
     if [[ "$DOCKER_COMPOSE_CMD" == "docker compose" ]]; then
-        docker compose --env-file .env-bitoarch up -d --pull always > "$LOG_FILE" 2>&1 &
+        docker compose --env-file "$ENV_FILE" up -d --pull always > "$LOG_FILE" 2>&1 &
     else
-        set -a
-        source .env-bitoarch
-        set +a
-        $DOCKER_COMPOSE_CMD pull >> "$LOG_FILE" 2>&1 || true
-        $DOCKER_COMPOSE_CMD up -d > "$LOG_FILE" 2>&1 &
+        # For docker-compose v1, use --env-file flag (requires docker-compose 1.25.0+)
+        # Fallback to sourcing if very old version
+        if $DOCKER_COMPOSE_CMD --help | grep -q "\-\-env-file"; then
+            $DOCKER_COMPOSE_CMD --env-file "$ENV_FILE" pull >> "$LOG_FILE" 2>&1 || true
+            $DOCKER_COMPOSE_CMD --env-file "$ENV_FILE" up -d > "$LOG_FILE" 2>&1 &
+        else
+            # Legacy fallback: source the file
+            set -a
+            source "$ENV_FILE"
+            set +a
+            $DOCKER_COMPOSE_CMD pull >> "$LOG_FILE" 2>&1 || true
+            $DOCKER_COMPOSE_CMD up -d > "$LOG_FILE" 2>&1 &
+        fi
     fi
     
     local compose_pid=$!
@@ -977,10 +1073,79 @@ upgrade_kubernetes() {
     # Set SCRIPT_DIR for values-generator.sh
     export SCRIPT_DIR="$NEW_DIR"
     
+    # CRITICAL: Determine standard config directory BEFORE sourcing path-manager.sh
+    # This prevents path-manager's auto init_paths from detecting "legacy" layout
+    local standard_config_dir
+    if [[ -d "/usr/local/etc/bitoarch" ]]; then
+        standard_config_dir="/usr/local/etc/bitoarch"
+    elif [[ -d "${HOME}/.local/bitoarch/etc" ]]; then
+        standard_config_dir="${HOME}/.local/bitoarch/etc"
+    else
+        # Neither exists - determine based on permissions (same as fresh install logic)
+        if [[ -w "/usr/local/etc" ]] || command -v sudo >/dev/null 2>&1; then
+            standard_config_dir="/usr/local/etc/bitoarch"
+        else
+            standard_config_dir="${HOME}/.local/bitoarch/etc"
+        fi
+    fi
+    
+    # Set path variables for values-generator.sh
+    export BITOARCH_CONFIG_DIR="$standard_config_dir"
+    # Also set VAR_DIR based on the chosen standard config path
+    if [[ "$standard_config_dir" == "/usr/local/etc/bitoarch" ]]; then
+        export BITOARCH_VAR_DIR="/usr/local/var/bitoarch"
+    else
+        export BITOARCH_VAR_DIR="${HOME}/.local/bitoarch/var"
+    fi
+    
+    # NOTE: We don't source path-manager.sh here for K8s upgrades because:
+    # 1. We don't use any of its functions (no get_config_dir calls)
+    # 2. It would auto-call init_paths and override our BITOARCH_CONFIG_DIR setting
+    # 3. We've already set all the required environment variables above
+    
+    msg_info "Syncing migrated configs to standard location: $standard_config_dir"
+    mkdir -p "$standard_config_dir"
+
+    # Copy all config files from NEW_DIR (which has patched configs from migrate_config)
+    # Then remove them from NEW_DIR since K8s doesn't need local config files
+    for config_file in .env-bitoarch .env-llm-bitoarch .bitoarch-config.yaml .deployment-type; do
+        if [[ -f "${NEW_DIR}/${config_file}" ]]; then
+            if [[ "${NEW_DIR}" != "${standard_config_dir}" ]]; then
+                cp "${NEW_DIR}/${config_file}" "$standard_config_dir/${config_file}"
+                # Remove from NEW_DIR - K8s doesn't need config files in installation directory
+                rm -f "${NEW_DIR}/${config_file}"
+                log_silent "Synced ${config_file} to $standard_config_dir and removed from NEW_DIR"
+            else
+                log_silent "Skipped ${config_file} (source=destination)"
+            fi
+        fi
+    done
+
+    msg_success "All configs synced to standard location (removed from installation dir)"
+
+    # Update bitoarch CLI symlink to point to new installation
+    # CRITICAL: Must use scripts/bitoarch.sh, NOT the root bitoarch file
+    # The root bitoarch expects lib/ at root level, but files are at scripts/lib/
+    # The scripts/bitoarch.sh correctly resolves lib/ relative to scripts/ directory
+    msg_info "Updating bitoarch CLI symlink..."
+    local cli_bin_dir="$HOME/.local/bin"
+    local cli_target="$cli_bin_dir/bitoarch"
+    local cli_source="${NEW_DIR}/scripts/bitoarch.sh"
+
+    if [[ -f "$cli_source" ]]; then
+        mkdir -p "$cli_bin_dir"
+        chmod +x "$cli_source"
+        ln -sf "$cli_source" "$cli_target"
+        msg_success "Updated bitoarch symlink: $cli_target -> $cli_source"
+        log_silent "Updated bitoarch CLI symlink to new installation"
+    else
+        msg_warn "bitoarch CLI not found in new installation, skipping symlink update"
+    fi
+
     # Source the values-generator and call with imagePullPolicy=Always
     # shellcheck disable=SC1090
     source "${NEW_DIR}/scripts/values-generator.sh"
-    
+
     # Execute values-generator function with Always pull policy for upgrades
     if ! generate_k8s_values_from_env "Always" 2>&1 | tee -a "$LOG_FILE"; then
         msg_error "Failed to generate Helm values"
@@ -988,31 +1153,35 @@ upgrade_kubernetes() {
         tail -20 "$LOG_FILE" | grep -i "error" || tail -20 "$LOG_FILE"
         exit 1
     fi
-    
-    # Verify values file was created
-    if [[ ! -f "${NEW_DIR}/.bitoarch-values.yaml" ]]; then
+
+    # Verify values file was created (check standard location after migration)
+    local values_file="${standard_config_dir}/.bitoarch-values.yaml"
+    if [[ ! -f "$values_file" ]]; then
         msg_error "Helm values file not generated"
+        msg_error "Expected location: $values_file"
         msg_error "The values-generator.sh script completed but didn't create the output file"
         exit 1
     fi
     
+    msg_info "Using values file: $values_file"
+
     # Perform Helm upgrade
     msg_info "Upgrading Helm release..."
     msg_info "This may take 2-5 minutes (pulling images, updating pods)..."
     
     if helm upgrade bitoarch "${NEW_DIR}/helm-bitoarch" \
         --namespace "$namespace" \
-        --values "${NEW_DIR}/.bitoarch-values.yaml" \
+        --values "$values_file" \
         --wait \
         --timeout 10m >> "$LOG_FILE" 2>&1; then
         msg_success "Helm upgrade completed"
-        
+
         # Force rollout restart to ensure pods pull latest images with imagePullPolicy=Always
         # Critical when upgrading to same version but with updated images in registry
         kubectl rollout restart deployment -n "$namespace" -l "app.kubernetes.io/name=bitoarch" >> "$LOG_FILE" 2>&1 || true
-        
+
         log_silent "Pod rollout initiated to force image pull"
-        
+
         # CRITICAL: Wait for ALL rollouts to complete before starting port-forwards
         # This prevents race condition where port-forward connects to terminating pod
         msg_info "Waiting for all deployment rollouts to complete..."
@@ -1036,14 +1205,14 @@ upgrade_kubernetes() {
     fi
     
     log_silent "Kubernetes upgrade completed successfully"
-    
+
     # CRITICAL: Wait for pods to be ready after rollout restart
     # Inline implementation to work regardless of kubernetes-manager.sh version
     msg_info "Waiting for pods to be ready after rollout restart..."
     local max_wait=180
     local waited=0
     local services=("mysql" "config" "manager" "provider" "tracker")
-    
+
     while [ $waited -lt $max_wait ]; do
         local all_ready=true
         for service in "${services[@]}"; do
@@ -1054,130 +1223,131 @@ upgrade_kubernetes() {
                 break
             fi
         done
-        
+
         if [ "$all_ready" = true ]; then
             msg_success "All pods are ready"
             break
         fi
-        
+
         echo -n "."
         sleep 5
         waited=$((waited + 5))
     done
-    
+
     if [ $waited -ge $max_wait ]; then
         msg_warn "Some pods may still be initializing"
     fi
     echo ""
-    
-    # Load environment variables from new installation for port configuration
+
+    # Load environment variables from standard location for port configuration
+    # (configs were moved to standard location, not in NEW_DIR anymore)
     set -a
-    source "${NEW_DIR}/.env-bitoarch" 2>/dev/null || true
+    source "${standard_config_dir}/.env-bitoarch" 2>/dev/null || true
     set +a
-    
+
     # Setup port-forwards for immediate CLI access
     # INLINE implementation to work regardless of kubernetes-manager.sh version in old installation
     msg_info "Setting up port-forwards to new pods..."
-    
+
     # Kill any existing port-forwards
     pkill -f "kubectl.*port-forward.*${namespace}" 2>/dev/null || true
     sleep 2
-    
+
     # Read port configuration
     local provider_ext="${CIS_PROVIDER_EXTERNAL_PORT:-5001}"
     local manager_ext="${CIS_MANAGER_EXTERNAL_PORT:-5002}"
     local config_ext="${CIS_CONFIG_EXTERNAL_PORT:-5003}"
     local mysql_ext="${MYSQL_EXTERNAL_PORT:-5004}"
     local tracker_ext="${CIS_TRACKER_EXTERNAL_PORT:-5005}"
-    
+
     local provider_int="${XMCP_HTTP_PORT:-8080}"
     local manager_int="${CIS_MANAGER_PORT:-9090}"
     local config_int="${CIS_CONFIG_PORT:-8081}"
     local mysql_int="${MYSQL_PORT:-3306}"
     local tracker_int="${CIS_TRACKING_PORT:-9920}"
-    
+
     # Launch port-forwards with proper daemonization
     # Use: nohup + stdin from /dev/null + disown to fully detach from shell
     nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-provider "${provider_ext}:${provider_int}" </dev/null >> "$LOG_FILE" 2>&1 &
     disown 2>/dev/null || true
     sleep 0.5
-    
+
     nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-manager "${manager_ext}:${manager_int}" </dev/null >> "$LOG_FILE" 2>&1 &
     disown 2>/dev/null || true
     sleep 0.5
-    
+
     nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-config "${config_ext}:${config_int}" </dev/null >> "$LOG_FILE" 2>&1 &
     disown 2>/dev/null || true
     sleep 0.5
-    
+
     nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-mysql "${mysql_ext}:${mysql_int}" </dev/null >> "$LOG_FILE" 2>&1 &
     disown 2>/dev/null || true
     sleep 0.5
-    
+
     nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-tracker "${tracker_ext}:${tracker_int}" </dev/null >> "$LOG_FILE" 2>&1 &
     disown 2>/dev/null || true
     sleep 2
-    
+
     # Verify and retry port-forwards with health check
     local max_verify_attempts=3
     local verify_attempt=1
-    
+
     while [ $verify_attempt -le $max_verify_attempts ]; do
         local pf_count=$(ps aux | grep "kubectl port-forward" | grep -E "(-n |--namespace=|-n=)$namespace" | grep -v grep | wc -l | xargs)
-        
+
         if [ "$pf_count" -ge 5 ]; then
             msg_success "Port-forwards established (5/5 services)"
             break
         fi
-        
+
         msg_warn "Only $pf_count/5 port-forwards running (attempt $verify_attempt)"
-        
+
         # Restart missing port-forwards
         if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-provider" | grep -v grep >/dev/null 2>&1; then
             log_silent "Restarting provider port-forward"
             nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-provider "${provider_ext}:${provider_int}" </dev/null >> "$LOG_FILE" 2>&1 &
             disown 2>/dev/null || true
         fi
-        
+
         if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-manager" | grep -v grep >/dev/null 2>&1; then
             log_silent "Restarting manager port-forward"
             nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-manager "${manager_ext}:${manager_int}" </dev/null >> "$LOG_FILE" 2>&1 &
             disown 2>/dev/null || true
         fi
-        
+
         if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-config" | grep -v grep >/dev/null 2>&1; then
             log_silent "Restarting config port-forward"
             nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-config "${config_ext}:${config_int}" </dev/null >> "$LOG_FILE" 2>&1 &
             disown 2>/dev/null || true
         fi
-        
+
         if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-mysql" | grep -v grep >/dev/null 2>&1; then
             log_silent "Restarting mysql port-forward"
             nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-mysql "${mysql_ext}:${mysql_int}" </dev/null >> "$LOG_FILE" 2>&1 &
             disown 2>/dev/null || true
         fi
-        
+
         if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-tracker" | grep -v grep >/dev/null 2>&1; then
             log_silent "Restarting tracker port-forward"
             nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-tracker "${tracker_ext}:${tracker_int}" </dev/null >> "$LOG_FILE" 2>&1 &
             disown 2>/dev/null || true
         fi
-        
+
         sleep 2
         verify_attempt=$((verify_attempt + 1))
     done
-    
+
     # Final health check - test actual connectivity
     msg_info "Verifying port-forward connectivity..."
     local health_ok=true
-    
+
     for port in $provider_ext $manager_ext $config_ext $tracker_ext; do
         if ! curl -s --connect-timeout 2 "http://localhost:$port/health" >/dev/null 2>&1; then
             health_ok=false
             log_silent "Port $port health check failed"
         fi
     done
-    
+
     if [ "$health_ok" = true ]; then
         msg_success "All port-forwards healthy and responding"
     else
@@ -1224,6 +1394,41 @@ check_kubernetes_services() {
     echo ""
     kubectl get pods -n "$namespace" 2>/dev/null | head -11
     echo ""
+}
+
+# Run database migrations from NEW version's scripts
+run_database_migrations() {
+    msg_info "Running database migrations from new version..."
+    
+    # Source the NEW version's sql-migration-manager.sh
+    local migration_script="${NEW_DIR}/scripts/sql-migration-manager.sh"
+    
+    if [[ ! -f "$migration_script" ]]; then
+        log_silent "Migration script not found, skipping database migrations"
+        return 0
+    fi
+    
+    # Export DEPLOYMENT_TYPE for migration script
+    export DEPLOYMENT_TYPE
+    
+    # Source the migration script (which sources setup-utils.sh for print_* functions)
+    # shellcheck disable=SC1090
+    source "$migration_script"
+    
+    # Update SQL_MIGRATION_PLATFORM_DIR to point to NEW installation
+    SQL_MIGRATION_PLATFORM_DIR="$NEW_DIR"
+    
+    # Run migrations
+    if run_upgrade_migrations; then
+        msg_success "Database migrations completed successfully"
+        log_silent "Database migrations completed"
+    else
+        msg_error "Database migrations failed"
+        log_silent "Database migrations failed"
+        return 1
+    fi
+    
+    return 0
 }
 
 # Print Kubernetes success summary
@@ -1332,6 +1537,7 @@ main() {
         # Kubernetes mode: Helm upgrade with rolling update
         upgrade_kubernetes
         check_kubernetes_services
+        run_database_migrations
         print_kubernetes_success
     elif [[ "$UPGRADE_MODE" == "standalone" ]]; then
         # Standalone mode: stop old, start new, verify
@@ -1339,12 +1545,14 @@ main() {
         start_new_version_standalone
         wait_for_services
         check_services
+        run_database_migrations
         print_success
     else
         # Embedded mode: start new, verify, stop old
         start_new_version
         wait_for_services
         check_services
+        run_database_migrations
         stop_old_version
         print_success
     fi

@@ -216,62 +216,33 @@ Setting up AI Architect has three main steps:
 
 Once the indexing is complete, you can configure AI Architect MCP server in any coding or chat agent that supports MCP. This guide will walk you through installing and setting up AI Architect in a self-hosted environment.  
 
-### Step 1- Download AI Architect
+### Step 1- Install AI Architect
 
-Download the latest version of AI Architect package from our **[GitHub repository](https://github.com/gitbito/ai-architect/releases)**.
-
----
-
-### Step 2- Start Docker Desktop / Docker Service
-
-Before proceeding with the installation, ensure **Docker Desktop / Docker Service** is running on your system. If it's not already open, launch **Docker Desktop** and wait for it to fully start before continuing.
-
----
-
-### Step 3- Extract the downloaded AI Architect package
+Before proceeding with the installation, ensure **Docker Desktop / Docker Service** or **Kubernetes cluster** is running on your system. If it's not already running, launch it and wait for it to fully start before continuing.
 
 Open your terminal:
 - **Linux/macOS:** Use your standard terminal application
 - **Windows (WSL2):** Launch the **Ubuntu** application from the **Start menu**
 
-Navigate to the folder where you downloaded the file. You can either work directly in your **Downloads** folder or move the file to any preferred location first, then navigate there in the terminal.
-- **Linux/macOS:** `cd /path/to/your/folder`
-- **Windows (WSL2):** `cd /mnt/c/Users/YourUsername/path/to/folder`
-
-Create a directory for AI Architect and extract the downloaded package into it:
-
-```bash
-mkdir bito-ai-architect
+Execute the installation command:
+```
+curl -fsSL https://aiarchitect.bito.ai/install.sh | bash
 ```
 
-```bash
-tar -xzf bito-ai-architect-*.tar.gz -C bito-ai-architect
-```
+The installation script will:
+- Download the latest Bito AI Architect package
+- Extract it to your system
+- Initialize the setup process
 
-> **Note:** Replace `bito-ai-architect-*.tar.gz` with the actual name of the file you downloaded.
-
-Navigate to the extracted folder:
-
-```bash
-cd bito-ai-architect
-```
+> **Installing dependencies:** The AI Architect setup process will automatically check for required tools on your system. If any dependencies are missing (such as `jq`, which is needed for JSON processing), you'll be prompted to install them. Simply type `y` and press `Enter` to proceed with the installation.
 
 ---
 
-### Step 4- Run setup
+### Step 2- Configuration
 
 The setup script will guide you through configuring AI Architect with your Git provider and LLM credentials. The process is interactive and will prompt you for the necessary information step by step.
 
-**To begin setup, run:**
-
-```bash
-./setup.sh
-```
-
-> **Installing dependencies:**
-> The AI Architect setup process will automatically check for required tools on your system. If any dependencies are missing (such as `jq`, which is needed for JSON processing), you'll be prompted to install them. Simply type `y` and press `Enter` to proceed with the installation.
-
-**You'll need to provide the following details when prompted:**
+#### You'll need to provide the following details when prompted:
 > Refer to the [Prerequisites section](#2-prerequisites) for details on how to obtain these.
 - **Deployment type** - Choose between **Docker** or **Kubernetes** based on your infrastructure requirements
 - **Bito API Key** (required) - Your Bito authentication key
@@ -287,9 +258,11 @@ The setup script will guide you through configuring AI Architect with your Git p
 
 ---
 
-### Step 5- Add repositories
+### Step 3- Add repositories
 
-Once your Git account is connected successfully, Bito automatically detects your repositories and populates the `.bitoarch-config.yaml` file with an initial list. Review this file to confirm which repositories you want to index — feel free to remove any that should be excluded or add others as needed. Once the list looks correct, save the file, and continue with the steps below.
+Once your Git account is connected successfully, Bito automatically detects your repositories and populates the `/usr/local/etc/bitoarch/.bitoarch-config.yaml` file with an initial list. Review this file to confirm which repositories you want to index — feel free to remove any that should be excluded or add others as needed. Once the list looks correct, save the file, and continue with the steps below.
+
+> For versions older than 1.4.0, configuration file can be found in installation directory.
 
 Below is an example of how the `.bitoarch-config.yaml` file is structured:
 
@@ -315,11 +288,11 @@ Once you select an option, your **Bito MCP URL** and **Bito MCP Access Token** w
 To manually apply the configuration, run this command:
 
 ```bash
-bitoarch add-repos .bitoarch-config.yaml
+bitoarch add-repos /usr/local/etc/bitoarch/.bitoarch-config.yaml
 ```
 ---
 
-### Step 6- Start indexing
+### Step 4- Start indexing
 
 Once your repositories are configured, AI Architect needs to analyze and index them to build the knowledge graph. This process scans your codebase structure, dependencies, and relationships to enable context-aware AI assistance.
 
@@ -335,7 +308,7 @@ Once the indexing is complete, you can configure AI Architect MCP server in any 
 
 ---
 
-### Step 7- Check indexing status
+### Step 5- Check indexing status
 
 Run this command to check the status of your indexing:
 
@@ -343,15 +316,34 @@ Run this command to check the status of your indexing:
 bitoarch index-status
 ```
 
-**Status indicators:**
+**Example output:**
 
-- `running` - Indexing is in progress
-- `success` - All repositories indexed
-- `failed` - Check logs for errors
+```
+Configured Repositories
+
+  Configured: 1
+  Note: Config can change while an index session is running.
+
+Index Status (Repo-level)
+
+  State: ✓ success
+  Progress: 1 / 1 completed
+
+Index Status (Cross-Repo)
+
+  State: ✓ success
+```
+
+**What each section represents:**
+
+- **Configured Repositories:** Shows how many repositories are added in your config file for indexing.
+- **Index Status (Repo-level):** Shows the indexing progress for each individual repository.
+- **Index Status (Cross-Repo):** Shows the status of indexes that combine and process information across multiple repositories.
+- **Overall Status:** Provides a single summary indicating whether indexing is still running, completed successfully, or failed.
 
 ---
 
-### Step 8- Check MCP server details
+### Step 6- Check MCP server details
 
 To manually check the MCP server details (e.g. **Bito MCP URL** and **Bito MCP Access Token**), use the following command:
 
@@ -380,16 +372,16 @@ bitoarch rotate-mcp-token <new-token>
 
 You can update the repository list and re-index anytime after the initial setup through `.bitoarch-config.yaml` file.
 
-Edit `.bitoarch-config.yaml` file to add/remove repositories:
+Edit `/usr/local/etc/bitoarch/.bitoarch-config.yaml` file to add/remove repositories:
 
 ```bash
-vim .bitoarch-config.yaml
+vim /usr/local/etc/bitoarch/.bitoarch-config.yaml
 ```
 
 To apply the changes, run this command:
 
 ```bash
-bitoarch update-repos .bitoarch-config.yaml
+bitoarch update-repos /usr/local/etc/bitoarch/.bitoarch-config.yaml
 ```
 
 Start the re-indexing process using this command:
@@ -483,6 +475,9 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 |---------|-------------|---------|
 | `bitoarch index-repos` | Trigger workspace repository indexing | Simple index without parameters |
 | `bitoarch index-status` | Check indexing status | View progress and state |
+| `bitoarch pause-indexing` | Pause ongoing indexing process | `bitoarch pause-indexing` |
+| `bitoarch resume-indexing` | Resume paused indexing process | `bitoarch resume-indexing` |
+| `bitoarch stop-indexing` | Stop indexing completely | `bitoarch stop-indexing` |
 | `bitoarch index-repo-list` | List all repositories | `bitoarch index-repo-list --status active` |
 | `bitoarch show-config` | Show current configuration | `bitoarch show-config --raw` |
 
@@ -492,8 +487,8 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 |---------|-------------|---------|
 | `bitoarch add-repo <namespace>` | Add single repository | `bitoarch add-repo myorg/myrepo` |
 | `bitoarch remove-repo <namespace>` | Remove repository | `bitoarch remove-repo myorg/myrepo` |
-| `bitoarch add-repos <file>` | Load configuration from YAML | `bitoarch add-repos .bitoarch-config.yaml` |
-| `bitoarch update-repos <file>` | Update configuration from YAML | `bitoarch update-repos .bitoarch-config.yaml` |
+| `bitoarch add-repos <file>` | Load configuration from YAML | `bitoarch add-repos /usr/local/etc/bitoarch/.bitoarch-config.yaml` |
+| `bitoarch update-repos <file>` | Update configuration from YAML | `bitoarch update-repos /usr/local/etc/bitoarch/.bitoarch-config.yaml` |
 | `bitoarch repo-info <name>` | Get detailed repository info | `bitoarch repo-info myrepo --dependencies` |
 
 ### Service operations
