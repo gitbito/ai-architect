@@ -531,9 +531,9 @@ patch_env_with_images() {
     local images_exist=false
     if grep -q "CIS_CONFIG_IMAGE=" "$env_file" 2>/dev/null; then
         images_exist=true
-        msg_info "Updating IMAGE variables to new version..."
+        log_silent "Updating IMAGE variables to new version..."
     else
-        msg_info "Adding IMAGE variables from new version..."
+        log_silent "Adding IMAGE variables from new version..."
     fi
     
     # Read versions and image bases from NEW version's versions/service-versions.json
@@ -610,13 +610,54 @@ EOF
     # Clean up sed backup files
     rm -f "${env_file}.bak"
     
-    msg_success "Env file patched with IMAGE variables from new version"
+    log_silent "Env file patched with IMAGE variables from new version"
     log_silent "Added IMAGE variables from new version: config=${cis_config_version}, manager=${cis_manager_version}, provider=${cis_provider_version}, tracker=${cis_tracker_version}, mysql=${mysql_version}"
 }
 
 # Migrate configuration
 migrate_config() {
     msg_info "Migrating configuration..."
+    
+    # Backup old .env-bitoarch before migration
+    if [ -f "${OLD_DIR}/.env-bitoarch" ]; then
+        # Determine standard backup directory
+        local backup_var_dir
+        if [[ -d "/usr/local/var/bitoarch" ]] || [[ -w "/usr/local/var" ]]; then
+            backup_var_dir="/usr/local/var/bitoarch"
+        else
+            backup_var_dir="${HOME}/.local/bitoarch/var"
+        fi
+        
+        local backup_dir="${backup_var_dir}/backups/configs/env"
+        local timestamp=$(date +%Y%m%d_%H%M%S)
+        local backup_file="${backup_dir}/.env-bitoarch.backup.${timestamp}"
+        
+        # Create backup directory
+        mkdir -p "$backup_dir" 2>/dev/null || {
+            if command -v sudo >/dev/null 2>&1; then
+                sudo mkdir -p "$backup_dir"
+                sudo chown -R "$USER:$(id -gn)" "$backup_dir"
+            fi
+        }
+        
+        # Create backup
+        if cp "${OLD_DIR}/.env-bitoarch" "$backup_file" 2>/dev/null; then
+            log_silent "Config backup saved to: $backup_file"
+            msg_info "Config backup: $backup_file"
+        else
+            msg_warn "Could not create config backup (non-critical)"
+        fi
+        
+        # Rotate old backups (keep latest 5)
+        local retention=5
+        local backup_pattern="${backup_dir}/.env-bitoarch.backup.*"
+        local existing_backups=$(ls -t $backup_pattern 2>/dev/null | wc -l | tr -d ' ')
+        
+        if [ "$existing_backups" -gt "$retention" ]; then
+            ls -t $backup_pattern 2>/dev/null | tail -n +$((retention + 1)) | xargs rm -f 2>/dev/null || true
+            log_silent "Rotated old backups (keeping latest ${retention})"
+        fi
+    fi
     
     NEW_ENV="${NEW_DIR}/.env-bitoarch"
     
@@ -643,7 +684,7 @@ migrate_config() {
         log_silent "Using config from OLD_DIR (symlink - 1.4.x+ installation)"
     fi
     
-    msg_info "Config source: $config_source"
+    log_silent "Config source: $config_source"
     
     # Copy env files from detected source
     [[ -f "${config_source}/.env-bitoarch" ]] && cp "${config_source}/.env-bitoarch" "${NEW_DIR}/.env-bitoarch"
@@ -684,7 +725,7 @@ migrate_config() {
     fi
 
     if [[ "$deployment_type" == "docker-compose" ]]; then
-        msg_info "Extracting latest provider configuration from new package..."
+        log_silent "Extracting latest provider configuration from new package..."
         local docker_config_path="${NEW_DIR}/services/cis-provider/config/default.json"
 
         # Source env to get provider image
@@ -699,7 +740,7 @@ migrate_config() {
                     if docker create --name temp-provider-config-upgrade "$provider_image" >/dev/null 2>&1; then
                         if docker cp temp-provider-config-upgrade:/opt/bito/xmcp/config/default.json "$docker_config_path" 2>> "$LOG_FILE"; then
                             chmod 666 "$docker_config_path" 2>/dev/null || true
-                            msg_success "Provider configuration extracted from new image"
+                            log_silent "Provider configuration extracted from new image"
                         else
                             msg_warn "Could not extract provider config from image, using packaged config"
                         fi
@@ -726,7 +767,7 @@ migrate_config() {
                     if docker create --name temp-provider-config-k8s-upgrade "$provider_image" >/dev/null 2>&1; then
                         if docker cp temp-provider-config-k8s-upgrade:/opt/bito/xmcp/config/default.json "$k8s_config_path" 2>> "$LOG_FILE"; then
                             chmod 666 "$k8s_config_path" 2>/dev/null || true
-                            msg_success "Provider configuration extracted from new image for Kubernetes"
+                            log_silent "Provider configuration extracted from new image for Kubernetes"
                             log_silent "Extracted default.json to: $k8s_config_path"
                         else
                             msg_warn "Could not extract provider config from image, using packaged config"
@@ -751,7 +792,7 @@ migrate_config() {
 
 # Check if docker volumes exist from old installation
 check_old_volumes() {
-    msg_info "Checking for existing data volumes..." >&2
+    log_silent "Checking for existing data volumes..." >&2
     
     # Try multiple methods to find volumes
     local volumes_found=0
@@ -775,8 +816,8 @@ check_old_volumes() {
     done
     
     if [[ $volumes_found -gt 0 ]]; then
-        msg_success "Found $volumes_found existing data volume(s) from project: $found_project_name" >&2
-        msg_info "Data will be preserved and shared with new installation" >&2
+        log_silent "Found $volumes_found existing data volume(s) from project: $found_project_name" >&2
+        msg_info "Data will be preserved during the upgrade..." >&2
         echo "$found_project_name"
     else
         msg_warn "No existing data volumes found - fresh volumes will be created" >&2
@@ -786,7 +827,7 @@ check_old_volumes() {
 
 # Configure shared volumes
 configure_volumes() {
-    msg_info "Configuring shared data volumes..."
+    log_silent "Configuring shared data volumes..."
     
     local compose_file="${NEW_DIR}/docker-compose.yml"
     local old_volumes_project=$(check_old_volumes)
@@ -803,7 +844,7 @@ configure_volumes() {
     
     # Configure volumes based on whether old volumes exist
     if [[ -n "$old_volumes_project" ]]; then
-        msg_info "Configuring to use existing data volumes (data will be preserved)"
+        log_silent "Configuring to use existing data volumes (data will be preserved)"
         # Append external volumes to reference existing ones
         cat >> "${compose_file}.tmp" << EOF
 
@@ -843,7 +884,7 @@ EOF
     fi
     
     mv "${compose_file}.tmp" "$compose_file"
-    msg_success "Volume configuration complete"
+    log_silent "Volume configuration complete"
 }
 
 # Start new version using setup.sh --from-existing-config
@@ -861,7 +902,7 @@ start_new_version() {
     init_paths
 
     local standard_config_dir="$(get_config_dir)"
-    msg_info "Syncing migrated configs to standard location: $standard_config_dir"
+    log_silent "Syncing migrated configs to standard location: $standard_config_dir"
     mkdir -p "$standard_config_dir"
 
     # Copy all config files from NEW_DIR (which has old installation's configs)
@@ -872,9 +913,9 @@ start_new_version() {
         fi
     done
 
-    msg_success "All configs synced to standard location with correct credentials"
+    log_silent "All configs synced to standard location with correct credentials"
 
-    msg_info "Running: ./setup.sh --from-existing-config"
+    log_silent "Running: ./setup.sh --from-existing-config"
     msg_info "This may take 2-5 minutes (starting containers)..."
     
     # Run setup.sh in background and show progress
@@ -967,14 +1008,14 @@ start_new_version_standalone() {
 
 # Wait for services
 wait_for_services() {
-    msg_info "Allowing new services to initialize (10 seconds)..."
+    msg_info "Deploying AI Architect with latest version..."
     sleep 10
-    msg_success "Initialization period complete"
+    msg_success "AI Architect deployed"
 }
 
 # Check service status
 check_services() {
-    msg_info "Verifying new services..."
+    msg_info "Verifying AI Architect services..."
     
     cd "$NEW_DIR" || exit 1
     
@@ -993,7 +1034,7 @@ check_services() {
 
 # Check if old services are running
 check_old_services_running() {
-    msg_info "Checking old installation services..."
+    log_silent "Checking old installation services..."
     
     cd "$OLD_DIR" || return 1
     
@@ -1001,7 +1042,7 @@ check_old_services_running() {
     local running_count=$(docker ps --filter "name=ai-architect" --format "{{.Names}}" 2>/dev/null | wc -l | tr -d ' ')
     
     if [[ "$running_count" -gt 0 ]]; then
-        msg_info "Found $running_count running service(s) in old installation"
+        log_silent "Found $running_count running service(s) in old installation"
         return 0
     else
         msg_warn "No services running in old installation"
@@ -1011,7 +1052,7 @@ check_old_services_running() {
 
 # Stop old version using setup.sh --stop (EMBEDDED MODE)
 stop_old_version() {
-    msg_info "Checking old installation status..."
+    log_silent "Checking old installation status..."
     
     if ! check_old_services_running; then
         msg_warn "⚠️  Old installation services are not running"
@@ -1020,13 +1061,13 @@ stop_old_version() {
         return 0
     fi
     
-    msg_info "Stopping old version services..."
+    log_silent "Stopping old version services..."
     
     cd "$OLD_DIR" || exit 1
     
-    msg_info "Running: ./setup.sh --stop"
-    if ./setup.sh --stop 2>&1 | tee -a "$LOG_FILE" | tail -10; then
-        msg_success "Old version stopped"
+    log_silent "Running: ./setup.sh --stop"
+    if ./setup.sh --stop >> "$LOG_FILE" 2>&1; then
+        log_silent "Old version stopped"
     else
         msg_warn "Some issues stopping old version"
     fi
@@ -1034,7 +1075,7 @@ stop_old_version() {
 
 # Stop old version - STANDALONE MODE (direct docker commands)
 stop_old_version_standalone() {
-    msg_info "Stopping old version services..."
+    log_silent "Stopping old version services..."
     
     local old_containers=$(docker ps --filter "name=ai-architect" --format "{{.Names}}" 2>/dev/null)
     
@@ -1103,7 +1144,7 @@ upgrade_kubernetes() {
     # 2. It would auto-call init_paths and override our BITOARCH_CONFIG_DIR setting
     # 3. We've already set all the required environment variables above
     
-    msg_info "Syncing migrated configs to standard location: $standard_config_dir"
+    log_silent "Syncing migrated configs to standard location: $standard_config_dir"
     mkdir -p "$standard_config_dir"
 
     # Copy all config files from NEW_DIR (which has patched configs from migrate_config)
@@ -1398,7 +1439,7 @@ check_kubernetes_services() {
 
 # Run database migrations from NEW version's scripts
 run_database_migrations() {
-    msg_info "Running database migrations from new version..."
+    log_silent "Running database migrations from new version..."
     
     # Source the NEW version's sql-migration-manager.sh
     local migration_script="${NEW_DIR}/scripts/sql-migration-manager.sh"
@@ -1420,11 +1461,9 @@ run_database_migrations() {
     
     # Run migrations
     if run_upgrade_migrations; then
-        msg_success "Database migrations completed successfully"
         log_silent "Database migrations completed"
     else
         msg_error "Database migrations failed"
-        log_silent "Database migrations failed"
         return 1
     fi
     

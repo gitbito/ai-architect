@@ -136,7 +136,7 @@ Please contact us at [support@bito.ai](mailto:support@bito.ai) for a **free Ente
 Before you start the AI Architect setup in your environment, make sure you have the following ready:
 
 ### **LLM API Keys**
-Required for personal use of AI Architect. Supports **Anthropic (Claude)** and **Grok** models. Add both keys for the best cost and coverage.
+Required for personal use of AI Architect. Supports **Anthropic (Claude)** and **Grok** models. Add both keys for the best cost and coverage. AI Architect also supports **[Portkey](https://portkey.ai)** integration for custom proxy configurations.
 
 ### **Bito Access Key**
 You’ll need a **Bito account** and a **Bito Access Key** to authenticate AI Architect. You can sign up for a Bito account at https://alpha.bito.ai, and create an access key from Settings -> Advanced Settings **[Link](https://alpha.bito.ai/home/advanced)**. 
@@ -490,6 +490,7 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 | `bitoarch add-repos <file>` | Load configuration from YAML | `bitoarch add-repos /usr/local/etc/bitoarch/.bitoarch-config.yaml` |
 | `bitoarch update-repos <file>` | Update configuration from YAML | `bitoarch update-repos /usr/local/etc/bitoarch/.bitoarch-config.yaml` |
 | `bitoarch repo-info <name>` | Get detailed repository info | `bitoarch repo-info myrepo --dependencies` |
+| `bitoarch fetch-repo-list` | Retrieve complete and incremental Git repository inventories | `bitoarch fetch-repo-list` |
 
 ### Service operations
 
@@ -582,6 +583,16 @@ tail -f setup.log
 # Force pull latest images and restart services
 ./setup.sh --update
 ```
+
+### Logs & backups location
+
+**Logs:**
+- System installation: `/usr/local/var/bitoarch/logs/`
+- User installation: `~/.local/bitoarch/var/logs/`
+
+**Configuration backups:**
+- System installation: `/usr/local/var/bitoarch/backups/configs/`
+- User installation: `~/.local/bitoarch/var/backups/configs/`
 
 ---
 
