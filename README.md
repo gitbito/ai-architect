@@ -218,15 +218,15 @@ This section provides infrastructure planning guidance for enterprise deployment
 
 ### Component overview
 
-AI Architect includes the following services, all managed through the standard deployment:
+AI Architect includes the following services:
 
-| Component | Type | Requires Persistent Storage |
-|-----------|------|----------------------------|
-| **Database (MySQL)** | Stateful | ✅ Yes |
-| **Manager** | Stateful | ✅ Yes |
-| **Provider** | Stateless | No |
-| **Config** | Stateless | No |
-| **Tracker** | Stateless | No |
+| Component | Type | Architectural Role | Application State | Persistent Storage |
+|-----------|------|-------------------|-------------------|-------------------|
+| **Database (MySQL)** | Stateful | Data Store | All metadata, configs, analytics | ✅ Yes - Database files |
+| **Manager** | Stateful | Indexing Engine | Repository clones, search indexes | ✅ Yes - Shared data volume |
+| **Config** | Stateless | Configuration API | Workspace configurations | ✅ Yes - Database only |
+| **Provider** | Stateless | MCP Server | None (API gateway) | ✅ Yes - Logs, temp files only |
+| **Tracker** | Stateless | Analytics | None (forwards to external) | ✅ Yes - Logs only |
 
 > **Note:** All persistent storage is automatically configured using Docker volumes or Kubernetes PersistentVolumeClaims during installation.
 
@@ -238,27 +238,34 @@ AI Architect automatically creates persistent volumes for:
 
 | Data Type | What's Stored | Sizing Guide |
 |-----------|---------------|--------------|
-| **Database** | Configuration, metadata, processing state | 100–500 MB |
-| **Index data** | Cloned repositories, search indexes, analysis data | 2–3× total repository size |
-| **Backups** | Database and configuration backups | 20–30% of data size |
+| **Database** | Metadata, configs, analytics | ~5 MB per repo (500 MB for 100 repos) |
+| **Index data** | Cloned repositories + search indexes | ~1.5 GB per repository |
+| **Backups** | Database and configuration backups | 10 GB default |
+| **Temp/Logs** | Processing files and service logs | 10 GB default |
 
 **Disk space estimation:**
 ```
-Total Storage = (Sum of repository sizes × 3) + 5 GB base overhead
+Storage Required = (Number_of_Repos × 1.5 GB) + 10 GB (MySQL + overhead)
+
+Examples:
+- 10 repos:  25 GB minimum
+- 50 repos:  85 GB minimum
+- 100 repos: 160 GB minimum
 ```
 
+> **Note:** Storage requirements scale with repository size. Estimates assume average repos of 500 MB each.
 ---
 
 ### System requirements
 
+Default resource allocation: 5 CPU cores, 6 GB memory across all services.
+
 | Deployment Size | Repositories | CPU | Memory | Storage |
 |-----------------|--------------|-----|--------|---------|
-| **Small** | Up to 20 | 4 cores | 8 GB | 10–15 GB |
-| **Medium** | 20–100 | 8 cores | 16 GB | 30–60 GB |
-| **Large** | 100–500 | 16 cores | 32 GB | 100–300 GB |
-| **Enterprise** | 500+ | 32+ cores | 64+ GB | 300 GB+ |
-
-> **Note:** Storage requirements scale with repository size. Estimates assume average repos of 50–200 MB each.
+| **Small** | 1–20 | 6 cores | 8 GB | 50 GB |
+| **Medium** | 20–50 | 8 cores | 16 GB | 100 GB |
+| **Large** | 50–150 | 12 cores | 24 GB | 250 GB |
+| **Enterprise** | 150+ | 16+ cores | 32+ GB | 500+ GB |
 
 ---
 
