@@ -271,7 +271,8 @@ Default resource allocation: 5 CPU cores, 6 GB memory across all services.
 
 ### Deployment checklist
 
-- [ ] Verify system meets minimum requirements (4 cores, 8 GB RAM, 10 GB+ storage)
+- [ ] Verify system meets minimum requirements (6 cores, 8 GB RAM, 50 GB storage for up to 20 repos)
+- [ ] Calculate storage: `(Number_of_Repos × 1.5 GB) + 10 GB overhead`
 - [ ] Ensure persistent storage is available for Docker volumes or Kubernetes PVCs
 - [ ] Plan for storage growth based on repository count and size
 - [ ] Configure firewall rules to restrict access to trusted IPs (services are exposed on all network interfaces)
