@@ -50,28 +50,31 @@
       <a href="#2-prerequisites">Prerequisites</a>
     </li>
     <li>
-      <a href="#3-installation-instructions">Installation instructions</a>
+      <a href="#3-enterprise-deployment-architecture--requirements">Enterprise deployment architecture & requirements</a>
     </li>
     <li>
-      <a href="#4-update-repository-list-and-re-index">Update repository list and re-index</a>
+      <a href="#4-installation-instructions">Installation instructions</a>
     </li>
     <li>
-      <a href="#5-setting-up-ai-architect-mcp-in-coding-agents">Setting up AI Architect MCP in coding agents</a>
+      <a href="#5-update-repository-list-and-re-index">Update repository list and re-index</a>
     </li>
     <li>
-      <a href="#6-configuring-ai-architect-for-bito-ai-code-review-agent">Configuring AI Architect for Bito AI Code Review Agent</a>
+      <a href="#6-setting-up-ai-architect-mcp-in-coding-agents">Setting up AI Architect MCP in coding agents</a>
     </li>
     <li>
-      <a href="#7-command-reference">Command reference</a>
+      <a href="#7-configuring-ai-architect-for-bito-ai-code-review-agent">Configuring AI Architect for Bito AI Code Review Agent</a>
     </li>
     <li>
-      <a href="#8-troubleshooting-guide">Troubleshooting guide</a>
+      <a href="#8-command-reference">Command reference</a>
     </li>
     <li>
-      <a href="#9-upgrading-ai-architect">Upgrading AI Architect</a>
+      <a href="#9-troubleshooting-guide">Troubleshooting guide</a>
     </li>
     <li>
-      <a href="#10-support--contact">Support & contact</a>
+      <a href="#10-upgrading-ai-architect">Upgrading AI Architect</a>
+    </li>
+    <li>
+      <a href="#11-support--contact">Support & contact</a>
     </li>
   </ol>
 </details>
@@ -205,9 +208,75 @@ For testing and development purposes, you can create a local cluster using KIND 
 
 <br />
 
+<!-- Enterprise Deployment Architecture & Requirements -->
+
+## 3. Enterprise deployment architecture & requirements
+
+This section provides infrastructure planning guidance for enterprise deployments of AI Architect.
+
+---
+
+### Component overview
+
+AI Architect includes the following services, all managed through the standard deployment:
+
+| Component | Type | Requires Persistent Storage |
+|-----------|------|----------------------------|
+| **Database (MySQL)** | Stateful | ✅ Yes |
+| **Manager** | Stateful | ✅ Yes |
+| **Provider** | Stateless | No |
+| **Config** | Stateless | No |
+| **Tracker** | Stateless | No |
+
+> **Note:** All persistent storage is automatically configured using Docker volumes or Kubernetes PersistentVolumeClaims during installation.
+
+---
+
+### Persistent storage
+
+AI Architect automatically creates persistent volumes for:
+
+| Data Type | What's Stored | Sizing Guide |
+|-----------|---------------|--------------|
+| **Database** | Configuration, metadata, processing state | 100–500 MB |
+| **Index data** | Cloned repositories, search indexes, analysis data | 2–3× total repository size |
+| **Backups** | Database and configuration backups | 20–30% of data size |
+
+**Disk space estimation:**
+```
+Total Storage = (Sum of repository sizes × 3) + 5 GB base overhead
+```
+
+---
+
+### System requirements
+
+| Deployment Size | Repositories | CPU | Memory | Storage |
+|-----------------|--------------|-----|--------|---------|
+| **Small** | Up to 20 | 4 cores | 8 GB | 10–15 GB |
+| **Medium** | 20–100 | 8 cores | 16 GB | 30–60 GB |
+| **Large** | 100–500 | 16 cores | 32 GB | 100–300 GB |
+| **Enterprise** | 500+ | 32+ cores | 64+ GB | 300 GB+ |
+
+> **Note:** Storage requirements scale with repository size. Estimates assume average repos of 50–200 MB each.
+
+---
+
+### Deployment checklist
+
+- [ ] Verify system meets minimum requirements (4 cores, 8 GB RAM, 10 GB+ storage)
+- [ ] Ensure persistent storage is available for Docker volumes or Kubernetes PVCs
+- [ ] Plan for storage growth based on repository count and size
+- [ ] Configure firewall rules to restrict access to trusted IPs (services are exposed on all network interfaces)
+- [ ] For production deployments, set up a reverse proxy (e.g., Nginx) with HTTPS
+
+---
+
+<br />
+
 <!-- Installation instructions -->
 
-## 3. Installation instructions
+## 4. Installation instructions
 
 Setting up AI Architect has three main steps:
 1. Download and install Bito AI Architect
@@ -368,7 +437,7 @@ bitoarch rotate-mcp-token <new-token>
 
 <!-- Update repository list and re-index -->
 
-## 4. Update repository list and re-index
+## 5. Update repository list and re-index
 
 You can update the repository list and re-index anytime after the initial setup through `.bitoarch-config.yaml` file.
 
@@ -396,7 +465,7 @@ bitoarch index-repos
 
 <!-- Setting up AI Architect MCP in coding agents -->
 
-## 5. Setting up AI Architect MCP in coding agents
+## 6. Setting up AI Architect MCP in coding agents
 
 Now that AI Architect is installed and your repositories are indexed, the next step is to connect it to your AI coding tools (such as Claude Code, Cursor, Windsurf, GitHub Copilot, etc.) through the Model Context Protocol (MCP).
 
@@ -430,7 +499,7 @@ If you prefer hands-on control over your configuration or encounter issues with 
 
 <!-- Configuring AI Architect for Bito AI Code Review Agent -->
 
-## 6. Configuring AI Architect for Bito AI Code Review Agent
+## 7. Configuring AI Architect for Bito AI Code Review Agent
 
 Now that you have **AI Architect** set up, you can take your code quality to the next level by integrating it with **[Bito's AI Code Review Agent](https://bito.ai/product/ai-code-review-agent/)**. This powerful combination delivers significantly more accurate and context-aware code reviews by leveraging the deep codebase knowledge graph that AI Architect has built.
 
@@ -461,7 +530,7 @@ This enables the AI Code Review Agent to:
 
 <!-- Command reference -->
 
-## 7. Command reference
+## 8. Command reference
 
 Quick reference to CLI commands for managing Bito's AI Architect.
 
@@ -549,7 +618,7 @@ bitoarch --version
 
 <!-- Troubleshooting guide -->
 
-## 8. Troubleshooting guide
+## 9. Troubleshooting guide
 
 ```bash
 # Check all services
@@ -597,7 +666,7 @@ tail -f setup.log
 ---
 
 
-## 9. Upgrading AI Architect
+## 10. Upgrading AI Architect
 
 [](#overview)
 
@@ -686,7 +755,7 @@ To switch between deployment types (Docker to Kubernetes or Kubernetes to Docker
 
 <!-- Support & contact -->
 
-## 10. Support & contact
+## 11. Support & contact
 
 For comprehensive information and guidance on the AI Architect, including installation and configuration instructions, please refer to our detailed **[documentation available here](https://docs.bito.ai/ai-architect/overview)**. Should you require further assistance or have any inquiries, our support team is readily available to assist you.
 
