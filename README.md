@@ -288,7 +288,7 @@ Once you select an option, your **Bito MCP URL** and **Bito MCP Access Token** w
 To manually apply the configuration, run this command:
 
 ```bash
-bitoarch add-repos /usr/local/etc/bitoarch/.bitoarch-config.yaml
+bitoarch add-repos
 ```
 ---
 
@@ -381,7 +381,7 @@ vim /usr/local/etc/bitoarch/.bitoarch-config.yaml
 To apply the changes, run this command:
 
 ```bash
-bitoarch update-repos /usr/local/etc/bitoarch/.bitoarch-config.yaml
+bitoarch update-repos
 ```
 
 Start the re-indexing process using this command:
@@ -473,7 +473,7 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `bitoarch index-repos` | Trigger workspace repository indexing | Simple index without parameters |
+| `bitoarch index-repos` | Trigger workspace repository indexing. Use `--only-new-repos` to index only newly added repositories | `bitoarch index-repos --only-new-repos` |
 | `bitoarch index-status` | Check indexing status | View progress and state |
 | `bitoarch pause-indexing` | Pause ongoing indexing process | `bitoarch pause-indexing` |
 | `bitoarch resume-indexing` | Resume paused indexing process | `bitoarch resume-indexing` |
@@ -487,8 +487,8 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 |---------|-------------|---------|
 | `bitoarch add-repo <namespace>` | Add single repository | `bitoarch add-repo myorg/myrepo` |
 | `bitoarch remove-repo <namespace>` | Remove repository | `bitoarch remove-repo myorg/myrepo` |
-| `bitoarch add-repos <file>` | Load configuration from YAML | `bitoarch add-repos /usr/local/etc/bitoarch/.bitoarch-config.yaml` |
-| `bitoarch update-repos <file>` | Update configuration from YAML | `bitoarch update-repos /usr/local/etc/bitoarch/.bitoarch-config.yaml` |
+| `bitoarch add-repos` | Load configuration from YAML | `bitoarch add-repos` |
+| `bitoarch update-repos` | Update configuration from YAML | `bitoarch update-repos` |
 | `bitoarch repo-info <name>` | Get detailed repository info | `bitoarch repo-info myrepo --dependencies` |
 | `bitoarch fetch-repo-list` | Retrieve complete and incremental Git repository inventories | `bitoarch fetch-repo-list` |
 
@@ -505,6 +505,7 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 |---------|-------------|---------|
 | `bitoarch update-api-key` | Update Bito API key | Interactive or with --api-key flag |
 | `bitoarch update-git-creds` | Update Git provider credentials | Interactive or with flags |
+| `bitoarch update-llm-keys` | Update LLM API keys | Interactive prompt |
 | `bitoarch rotate-mcp-token` | Rotate MCP access token | `bitoarch rotate-mcp-token <new-token>` |
 
 ### MCP operations
