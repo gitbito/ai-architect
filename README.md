@@ -59,19 +59,22 @@
       <a href="#5-setting-up-ai-architect-mcp-in-coding-agents">Setting up AI Architect MCP in coding agents</a>
     </li>
     <li>
-      <a href="#6-configuring-ai-architect-for-bito-ai-code-review-agent">Configuring AI Architect for Bito AI Code Review Agent</a>
+      <a href="#6-sso-authentication">SSO Authentication</a>
     </li>
     <li>
-      <a href="#7-command-reference">Command reference</a>
+      <a href="#7-configuring-ai-architect-for-bito-ai-code-review-agent">Configuring AI Architect for Bito AI Code Review Agent</a>
     </li>
     <li>
-      <a href="#8-troubleshooting-guide">Troubleshooting guide</a>
+      <a href="#8-command-reference">Command reference</a>
     </li>
     <li>
-      <a href="#9-upgrading-ai-architect">Upgrading AI Architect</a>
+      <a href="#9-troubleshooting-guide">Troubleshooting guide</a>
     </li>
     <li>
-      <a href="#10-support--contact">Support & contact</a>
+      <a href="#10-upgrading-ai-architect">Upgrading AI Architect</a>
+    </li>
+    <li>
+      <a href="#11-support--contact">Support & contact</a>
     </li>
   </ol>
 </details>
@@ -82,7 +85,7 @@
 
 ## 1. Overview
 
-Bito’s **[AI Architect](https://bito.ai/product/ai-architect/)** builds a knowledge graph of your codebase — from repos to modules to APIs — delivering deep codebase intelligence to the coding agents you already use. This fundamentally changes the game for enterprises with many microservices or large, complex codebases.
+Bito's **[AI Architect](https://bito.ai/product/ai-architect/)** builds a knowledge graph of your codebase — from repos to modules to APIs — delivering deep codebase intelligence to the coding agents you already use. This fundamentally changes the game for enterprises with many microservices or large, complex codebases.
 
 Bito provides this in a completely secure fashion, with the AI Architect available on-prem if you desire, and no AI is trained on your code.
 
@@ -139,7 +142,7 @@ Before you start the AI Architect setup in your environment, make sure you have 
 Required for personal use of AI Architect. Supports **Anthropic (Claude)** and **Grok** models. Add both keys for the best cost and coverage. AI Architect also supports **[Portkey](https://portkey.ai)** integration for custom proxy configurations.
 
 ### **Bito Access Key**
-You’ll need a **Bito account** and a **Bito Access Key** to authenticate AI Architect. You can sign up for a Bito account at https://alpha.bito.ai, and create an access key from Settings -> Advanced Settings **[Link](https://alpha.bito.ai/home/advanced)**. 
+You'll need a **Bito account** and a **Bito Access Key** to authenticate AI Architect. You can sign up for a Bito account at https://alpha.bito.ai, and create an access key from Settings -> Advanced Settings **[Link](https://alpha.bito.ai/home/advanced)**. 
 
 ### **Git Access Token**
 Used by AI Architect to read and index your repositories. Bito supports **GitHub**, **GitLab**, and **Bitbucket**.
@@ -251,6 +254,7 @@ The setup script will guide you through configuring AI Architect with your Git p
 - **Enterprise Git provider domain URL** - Provide your custom domain URL if you are using enterprise/self-hosted version of Git provider (e.g., https://github.company.com).
 - **LLM Keys** (required unless you have a Bito Enterprise Plan) - We suggest you provide API keys for both **Anthropic** and **Grok** LLMs for the best cost and coverage.
 - **Generate a secure MCP access token?** - Type `y` to generate a secure access token (recommended)
+- **Configure SSO?** - Optionally enable Single Sign-On (SSO) authentication. Choose between **Bito authentication** (OAuth via your Bito workspace) or **Enterprise IdP** (SAML/OIDC via your corporate identity provider). See [SSO Authentication](#6-sso-authentication) for more details.
 
 > **LLM Rate Limit Requirements:** To ensure stable and uninterrupted operation, the configured LLM provider must support the following minimum rate limits:
 >   - **Requests Per Minute (RPM):** 300
@@ -428,9 +432,118 @@ If you prefer hands-on control over your configuration or encounter issues with 
 
 <br />
 
+<!-- SSO Authentication -->
+
+## 6. SSO Authentication
+
+AI Architect supports Single Sign-On (SSO) authentication for secure, multi-user access to the MCP server. SSO runs entirely on-prem — no authentication traffic leaves your environment except for identity provider federation (if Enterprise IdP is configured) and Bito API calls for SSO configurations.
+
+### Authentication modes
+
+AI Architect supports three authentication modes:
+
+| Mode | Provider | How it works |
+|------|----------|--------------|
+| **Bearer Token** | None (SSO disabled) | Static MCP access token passed in the request header. This is the default mode. |
+| **Bito Authentication** | Bito | OAuth flow validated via your Bito workspace. Ideal for teams already using Bito. |
+| **Enterprise IdP** | Enterprise IdP | OAuth flow federated to your corporate SAML/OIDC identity provider (e.g., Okta, Azure AD, Google Workspace). |
+
+> **Note:** If Enterprise IdP is selected but not yet configured, the system automatically falls back to Bito authentication until the IdP setup is complete.
+
+---
+
+### Setting up SSO during installation
+
+SSO is configured during the `./setup.sh` process. When prompted with **"Configure SSO?"**, you can choose one of the following options:
+
+1. **Enterprise IdP (SAML/OIDC)**
+   - The setup process generates a configuration URL for your identity provider
+   - Open the URL in your browser and configure your IdP (e.g., Okta, Azure AD, Google Workspace) with the provided details
+   - Return to the setup and verify the connection
+
+2. **Bito Authentication**
+   - Enables OAuth authentication using your Bito workspace credentials
+   - No additional IdP configuration is required
+
+> **Note:** You can also configure or reconfigure SSO at any time after installation using the `bitoarch sso setup` command.
+
+---
+
+### Configuring SSO after installation
+
+If you skipped SSO during initial setup or want to change your SSO configuration, you can use the following CLI commands:
+
+**Set up or reconfigure SSO:**
+
+```bash
+bitoarch sso setup
+```
+
+This command will guide you through the SSO configuration process, including choosing between Enterprise IdP and Bito authentication.
+
+**Check SSO status:**
+
+```bash
+bitoarch sso status
+```
+
+Displays the current SSO configuration and IdP connection status.
+
+---
+
+### Managing SSO
+
+#### Enable SSO
+
+Re-enable SSO after it has been temporarily disabled:
+
+```bash
+bitoarch sso enable
+```
+
+#### Disable SSO
+
+You can disable SSO either temporarily or permanently:
+
+```bash
+bitoarch sso disable
+```
+
+You will be prompted to choose:
+- **Temporary disable** — Turns off SSO authentication but preserves your IdP configuration. You can re-enable it later with `bitoarch sso enable`.
+- **Permanent disable** — Removes the IdP configuration entirely and resets SSO settings. You will need to run `bitoarch sso setup` again to reconfigure.
+
+#### Rotate SSO management key
+
+Rotate the SSO tenant management key for security purposes:
+
+```bash
+bitoarch sso rotate-key
+```
+
+> **Important:** After rotating the key, SSO services will restart automatically. Active sessions may need to re-authenticate.
+
+---
+
+### SSO session configuration
+
+SSO sessions are configurable with the following defaults:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Session duration | 360 minutes (6 hours) | How long a session remains valid |
+| Refresh token TTL | 300 minutes (5 hours) | How long a refresh token remains valid |
+| Max concurrent sessions | 2 | Maximum number of concurrent sessions per user |
+
+> **Note:** Session settings can be customized through environment variables in the `.env-bitoarch` configuration file.
+
+---
+
+<br />
+
 <!-- Configuring AI Architect for Bito AI Code Review Agent -->
 
-## 6. Configuring AI Architect for Bito AI Code Review Agent
+## 7. Configuring AI Architect for Bito AI Code Review Agent
 
 Now that you have **AI Architect** set up, you can take your code quality to the next level by integrating it with **[Bito's AI Code Review Agent](https://bito.ai/product/ai-code-review-agent/)**. This powerful combination delivers significantly more accurate and context-aware code reviews by leveraging the deep codebase knowledge graph that AI Architect has built.
 
@@ -461,7 +574,7 @@ This enables the AI Code Review Agent to:
 
 <!-- Command reference -->
 
-## 7. Command reference
+## 8. Command reference
 
 Quick reference to CLI commands for managing Bito's AI Architect.
 
@@ -518,6 +631,16 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 | `bitoarch mcp-resources` | List MCP resources | View available data sources |
 | `bitoarch mcp-info` | Show MCP configuration | Display URL and token info |
 
+### SSO management
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `bitoarch sso setup` | Configure SSO (Enterprise IdP or Bito) | Interactive SSO setup wizard |
+| `bitoarch sso status` | Check current SSO/IdP connection status | `bitoarch sso status` |
+| `bitoarch sso enable` | Enable SSO authentication | `bitoarch sso enable` |
+| `bitoarch sso disable` | Disable SSO (temporary or permanent) | `bitoarch sso disable` |
+| `bitoarch sso rotate-key` | Rotate SSO tenant management key | `bitoarch sso rotate-key` |
+
 ### Output options
 
 Add these flags to any command:
@@ -550,7 +673,7 @@ bitoarch --version
 
 <!-- Troubleshooting guide -->
 
-## 8. Troubleshooting guide
+## 9. Troubleshooting guide
 
 ```bash
 # Check all services
@@ -598,7 +721,7 @@ tail -f setup.log
 ---
 
 
-## 9. Upgrading AI Architect
+## 10. Upgrading AI Architect
 
 [](#overview)
 
@@ -687,7 +810,7 @@ To switch between deployment types (Docker to Kubernetes or Kubernetes to Docker
 
 <!-- Support & contact -->
 
-## 10. Support & contact
+## 11. Support & contact
 
 For comprehensive information and guidance on the AI Architect, including installation and configuration instructions, please refer to our detailed **[documentation available here](https://docs.bito.ai/ai-architect/overview)**. Should you require further assistance or have any inquiries, our support team is readily available to assist you.
 
