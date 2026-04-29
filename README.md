@@ -755,7 +755,7 @@ cd /path/to/bito-ai-architect
 If you need to run the upgrade from outside your installation directory (useful for **version 1.0.0**), use the `--old-path` parameter:
 
 ```bash
-# Download the standalone upgrade script
+# Download the upgrade script
 curl -O https://github.com/gitbito/ai-architect/blob/main/upgrade.sh
 chmod +x upgrade.sh
 
