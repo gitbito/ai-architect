@@ -89,16 +89,6 @@ Bito's **[AI Architect](https://bito.ai/product/ai-architect/)** builds a knowle
 
 Bito provides this in a completely secure fashion, with the AI Architect available on-prem if you desire, and no AI is trained on your code.
 
-### Choose your deployment mode
-
-Bito's AI Architect can be self-hosted in two modes depending on your use case:
-
-🏢 **Enterprise mode** (this README) — A full-featured, multi-user deployment for teams that want to share a centralized codebase knowledge graph. Supports both Docker Compose and Kubernetes, runs on any on-premise or cloud infrastructure you control, and includes SSO authentication and dedicated server deployments.
-
-💻 **Standalone mode** ([learn more](https://docs.bito.ai/ai-architect/installation/install-ai-architect-self-hosted/standalone-mode-for-individuals)) — A lightweight, single-machine install for individual developers who want to evaluate AI Architect or use it for personal development on their own laptop. It runs entirely in Docker and auto-registers with your installed coding agents.
-
----
-
 > _Click the image below to watch the demo video on YouTube._
 
 [![See Bito's AI Architect demo](https://i.imgur.com/k8vQ31o.png)](https://www.youtube.com/watch?v=qAMtZ41-xJY "See Bito's AI Architect demo")
@@ -241,8 +231,6 @@ Execute the installation command:
 ```
 curl -fsSL https://aiarchitect.bito.ai/install.sh | bash
 ```
-
-> **Note:** To install self-hosted AI Architect on your local machine (e.g. Laptop) for evaluation, refer to **[Standalone mode documentation](https://docs.bito.ai/ai-architect/installation/install-ai-architect-self-hosted/standalone-mode-for-individuals)**.
 
 The installation script will:
 - Download the latest Bito AI Architect package
