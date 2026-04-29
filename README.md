@@ -454,7 +454,7 @@ AI Architect supports three authentication modes:
 
 ### Setting up SSO during installation
 
-SSO is configured during the `./setup.sh` process. When prompted with **"Configure SSO?"**, you can choose one of the following options:
+SSO is configured during the setup process. When prompted with **"Configure SSO?"**, you can choose one of the following options:
 
 1. **Enterprise IdP (SAML/OIDC)**
    - The setup process generates a configuration URL for your identity provider
@@ -582,6 +582,19 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 
 **Note:** For more details, refer to [Available commands](https://docs.bito.ai/ai-architect/available-commands).
 
+### Lifecycle
+
+| Command | Description |
+|---------|-------|
+| `bitoarch start` | For recovery if AI Architect services stopped/killed due to system issues |
+| `bitoarch stop` | Stop all services (keeps data) |
+| `bitoarch restart [--force]` | Restart services. `--force` reloads env and recreates containers |
+| `bitoarch logs [service]` | Tail service logs (`-f`). All services if `service` omitted |
+| `bitoarch update` | Refresh service images per `versions/service-versions.json` |
+| `bitoarch upgrade [--version=<ver>]` | Upgrade platform (latest by default). Blue/green tarball swap; data preserved |
+| `bitoarch reset` | Remove services, volumes, and config. Keeps install directory |
+| `bitoarch uninstall` | Full removal (services + install directory) |
+
 ### Core operations
 
 | Command | Description | Example |
@@ -628,8 +641,8 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 | `bitoarch mcp-test` | Test MCP connection | Verify server connectivity |
 | `bitoarch mcp-tools` | List available MCP tools | `bitoarch mcp-tools --details` |
 | `bitoarch mcp-capabilities` | Show MCP server capabilities | `bitoarch mcp-capabilities --output caps.json` |
-| `bitoarch mcp-resources` | List MCP resources | View available data sources |
 | `bitoarch mcp-info` | Show MCP configuration | Display URL and token info |
+| `bitoarch mcp-tool-info <name>` | Show details for one MCP tool. For example, `bitoarch mcp-tool-info search_code` |
 
 ### SSO management
 
@@ -693,19 +706,16 @@ bitoarch index-status --raw
 tail -f setup.log
 
 # Reset installation (removes all data and configuration)
-./setup.sh --clean
-
-# Then run setup again
-./setup.sh
+bitoarch reset
 
 # To stop all the service
-./setup.sh --stop
+bitoarch stop
 
 # Restart service (for env based config updates)
-./setup.sh --restart
+bitoarch restart
 
 # Force pull latest images and restart services
-./setup.sh --update
+bitoarch update
 ```
 
 ### Logs & backups location
@@ -739,11 +749,16 @@ The upgrade process:
 
 [](#option-1-upgrade-from-within-your-installation-recommended)
 
-If you're running **version 1.1.0 or higher**, navigate to your current installation directory and run:
+If you're running **version 1.7.1 or higher**, run the following command to upgrade AI Architect to latest version:
 
 ```bash
-cd /path/to/bito-ai-architect
-./scripts/upgrade.sh --version=latest
+bitoarch upgrade                    # latest
+```
+
+Or you can also upgrade to a specific version:
+
+```bash
+bitoarch upgrade --version=1.8.0    # specific version
 ```
 
 * * *
@@ -755,7 +770,7 @@ cd /path/to/bito-ai-architect
 If you need to run the upgrade from outside your installation directory (useful for **version 1.0.0**), use the `--old-path` parameter:
 
 ```bash
-# Download the standalone upgrade script
+# Download the upgrade script
 curl -O https://github.com/gitbito/ai-architect/blob/main/upgrade.sh
 chmod +x upgrade.sh
 
@@ -795,14 +810,14 @@ The upgrade script supports the following parameters:
 
 Upgrades must be performed within the same deployment type. You can only upgrade Docker to Docker or Kubernetes to Kubernetes.
 
-To switch between deployment types (Docker to Kubernetes or Kubernetes to Docker), you must use the `--clean` command to remove all data and configuration, then perform a fresh installation with the desired deployment type.
+To switch between deployment types (Docker to Kubernetes or Kubernetes to Docker), you must use the `bitoarch reset` command to remove all data and configuration, then perform a fresh installation with the desired deployment type.
 
 ```bash
-./setup.sh --clean
-./setup.sh
+bitoarch reset
+curl -fsSL https://aiarchitect.bito.ai/install.sh | bash
 ```
 
-> **Important:** Switching deployment types with `--clean` will result in data loss. All indexed repositories and configuration will be removed.
+> **Important:** Switching deployment types with `bitoarch reset` will result in data loss. All indexed repositories and configuration will be removed.
 
 > **Note:** Kubernetes deployment support is available from version 1.3.0 onwards. Versions prior to 1.3.0 only support Docker deployment.
 

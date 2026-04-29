@@ -1,0 +1,77 @@
+# ============================================================================
+# Copyright (c) 2023-2025 Bito Inc.
+# All rights reserved.
+#
+# This source code is proprietary and confidential to Bito Inc.
+# Unauthorized copying, modification, distribution, or use is strictly prohibited.
+#
+# For licensing information, see the COPYRIGHT file in the root directory.
+#
+# @company Bito Inc.
+# @website https://bito.ai
+# ============================================================================
+# Bito AI Architect -- Install Configuration
+# Edit the REQUIRED values below, then run the install bootstrap.
+# ============================================================================
+# LOCATION
+#   This file lives at $HOME/.bitoarch/install.yaml.
+#   Create it before running the install bootstrap if you know the schema
+#   (non-interactive install). If absent, the installer creates it from your
+#   prompt answers so subsequent installs are non-interactive.
+#
+# LIFECYCLE
+#   bitoarch restart --force   Re-reads this file and refreshes .env-bitoarch
+#   bitoarch reset             Wipes values (file preserved, edits blanked)
+#   bitoarch uninstall         Deletes this file
+#
+# MINIMUM REQUIREMENTS
+#   Host OS:      macOS 12+, Ubuntu 20.04+, or WSL2
+#   Docker:       Desktop 20.10+ with Compose v2
+#   Docker RAM:   6 GB allocated (install checks this)
+#   Docker CPUs:  3 cores
+#   Disk:         10 GB free
+#   Ports:        5001-5005 available on localhost
+# ============================================================================
+
+# REQUIRED: Bito API Key (https://alpha.bito.ai/home/advanced)
+bito_api_key: ""
+
+# OPTIONAL: Email used to register the local MCP with installed coding agents.
+# Leave blank to be prompted at install time; ignored if unused.
+user_email: ""
+
+git:
+  # REQUIRED: github | gitlab | bitbucket  (leave empty to be prompted)
+  provider: ""
+  # REQUIRED: personal access token
+  access_token: ""
+  # OPTIONAL: enterprise git domain (empty for cloud)
+  domain_url: ""
+  # OPTIONAL: bitbucket username/email
+  user: ""
+
+# OPTIONAL: Custom LLM provider keys
+# Resolution order: Bito API key -> env file -> prompt.
+# Leave commented to use Bito's LLM (when available) or be prompted at install.
+# Supported providers: Anthropic, OpenAI, XAI (Grok), Portkey (gateway).
+# llm:
+#   anthropic_api_token: ""
+#   openai_api_token: ""
+#   xai_api_token: ""
+#   portkey_api_token: ""
+#   portkey_api_url: ""          # optional; defaults to https://api.portkey.ai/v1
+#   portkey_model_name: ""       # required when portkey_api_token is set (format: @provider/model)
+
+# Resource defaults (tune per-host as needed)
+resources:
+  mysql_memory: 1g
+  mysql_cpu: 0.5
+  cis_manager_cpu: 1.0
+
+# OPTIONAL: Port overrides (uncomment + edit if defaults conflict)
+# ports:
+#   cis_provider: 5001
+#   cis_manager: 5002
+#   cis_config: 5003
+#   mysql: 5004
+#   cis_tracker: 5005
