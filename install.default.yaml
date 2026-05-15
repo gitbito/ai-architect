@@ -53,11 +53,10 @@ git:
 # OPTIONAL: Custom LLM provider keys
 # Resolution order: Bito API key -> env file -> prompt.
 # Leave commented to use Bito's LLM (when available) or be prompted at install.
-# Supported providers: Anthropic, OpenAI, XAI (Grok), Portkey (gateway).
+# Supported providers: Anthropic, OpenAI, Portkey (gateway).
 # llm:
 #   anthropic_api_token: ""
 #   openai_api_token: ""
-#   xai_api_token: ""
 #   portkey_api_token: ""
 #   portkey_api_url: ""          # optional; defaults to https://api.portkey.ai/v1
 #   portkey_model_name: ""       # required when portkey_api_token is set (format: @provider/model)
