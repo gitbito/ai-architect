@@ -108,7 +108,7 @@ Bito provides this in a completely secure fashion, with the AI Architect availab
 
 ---
 
-### AI Architect deployment, usage, and pricing 
+### AI Architect deployment, usage, and pricing
 
 You can choose to deploy and manage AI Architect in your own infrastructure with your own LLM keys, or let Bito host and manage it in the Bito cloud. An **on-prem deployment with an LLM access key is limited to a maximum of 5 developers**.  AI Architect can be deployed in three different configurations depending on your team size, infrastructure, and management requirements:
 
@@ -122,7 +122,7 @@ You can choose to deploy and manage AI Architect in your own infrastructure with
 >
 > Teams of up to five members can use AI Architect for free with their preferred coding agents by using their own LLM API keys. Larger teams require **[Bito Enterprise Plan](https://bito.ai/pricing/)**, which includes bundled LLM tokens. Further, if you want to power Bito Code Review Agent with AI Architect, you will need Bito Enterprise Plan regardless of the size of the team.
 >
-> We recommend adding an Anthropic API key. AI Architect uses Claude Haiku to index your codebase.
+> An Anthropic API key is required. AI Architect uses Claude Haiku to index your codebase. You can optionally also provide an OpenAI API key.
 >
 > With an Anthropic API key, indexing costs are typically **$1.00–$1.50 per MB** of indexable code (source files only; binaries, archives, and images are skipped).
 
@@ -139,7 +139,7 @@ Please contact us at [support@bito.ai](mailto:support@bito.ai) for a **free Ente
 Before you start the AI Architect setup in your environment, make sure you have the following ready:
 
 ### **LLM API Keys**
-Required for personal use of AI Architect. Supports **Anthropic (Claude)** models. AI Architect also supports **[Portkey](https://portkey.ai)** integration for custom proxy configurations.
+Required for personal use of AI Architect. An **Anthropic (Claude)** API key is mandatory; you can optionally also provide an **OpenAI (GPT)** API key. AI Architect also supports **[Portkey](https://portkey.ai)** integration for custom proxy configurations.
 
 ### **Bito Access Key**
 You'll need a **Bito account** and a **Bito Access Key** to authenticate AI Architect. You can sign up for a Bito account at https://alpha.bito.ai, and create an access key from Settings -> Advanced Settings **[Link](https://alpha.bito.ai/home/advanced)**.
@@ -252,7 +252,7 @@ The setup script will guide you through configuring AI Architect with your Git p
 - **Git provider** (required) - Choose your Git provider (GitHub, GitLab or BitBucket)
 - **Git Access Token** (required) - Personal access token for your Git provider
 - **Enterprise Git provider domain URL** - Provide your custom domain URL if you are using enterprise/self-hosted version of Git provider (e.g., https://github.company.com).
-- **LLM Keys** (required unless you have a Bito Enterprise Plan) - We suggest you provide an API key for the **Anthropic** LLM.
+- **LLM Keys** (required unless you have a Bito Enterprise Plan) - Provide an API key for **Anthropic** (mandatory). You can optionally also provide an **OpenAI** API key.
 - **Generate a secure MCP access token?** - Type `y` to generate a secure access token (recommended)
 - **Configure SSO?** - Optionally enable Single Sign-On (SSO) authentication. Choose between **Bito authentication** (OAuth via your Bito workspace) or **Enterprise IdP** (SAML/OIDC via your corporate identity provider). See [SSO Authentication](#6-sso-authentication) for more details.
 
