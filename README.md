@@ -21,7 +21,7 @@
     <img src="https://github.com/user-attachments/assets/d06b4dcf-9234-4d9a-be65-1e6f1ecfe5fa" alt="Logo" width="150">
   </a>
 
-  <h3 align="center">AI Architect</h3>
+<h3 align="center">AI Architect</h3>
 
   <p align="center">
     System intelligence for your coding agents.
@@ -108,7 +108,7 @@ Bito provides this in a completely secure fashion, with the AI Architect availab
 
 ---
 
-### AI Architect deployment, usage, and pricing 
+### AI Architect deployment, usage, and pricing
 
 You can choose to deploy and manage AI Architect in your own infrastructure with your own LLM keys, or let Bito host and manage it in the Bito cloud. An **on-prem deployment with an LLM access key is limited to a maximum of 5 developers**.  AI Architect can be deployed in three different configurations depending on your team size, infrastructure, and management requirements:
 
@@ -120,11 +120,11 @@ You can choose to deploy and manage AI Architect in your own infrastructure with
 
 > **ℹ️ Usage & Pricing**
 >
-> Teams of up to five members can use AI Architect for free with their preferred coding agents by using their own LLM API keys. Larger teams require **[Bito Enterprise Plan](https://bito.ai/pricing/)**, which includes bundled LLM tokens. Further, if you want to power Bito Code Review Agent with AI Architect, you will need Bito Enterprise Plan regardless of the size of the team. 
+> Teams of up to five members can use AI Architect for free with their preferred coding agents by using their own LLM API keys. Larger teams require **[Bito Enterprise Plan](https://bito.ai/pricing/)**, which includes bundled LLM tokens. Further, if you want to power Bito Code Review Agent with AI Architect, you will need Bito Enterprise Plan regardless of the size of the team.
 >
-> For the best cost and model coverage, we recommend adding both Anthropic and Grok API keys. AI Architect uses Claude Haiku and Grok Code Fast together to index your codebase.
+> An Anthropic API key is required. AI Architect uses Claude Haiku to index your codebase. You can optionally also provide an OpenAI API key.
 >
-> With both keys, indexing costs are typically **$0.20–$0.40 per MB** of indexable code (source files only; binaries, archives, and images are skipped). If only an Anthropic key is provided, indexing costs rise to **$1.00–$1.50 per MB**.
+> With an Anthropic API key, indexing costs are typically **$1.00–$1.50 per MB** of indexable code (source files only; binaries, archives, and images are skipped).
 
 Please contact us at [support@bito.ai](mailto:support@bito.ai) for a **free Enterprise trial** for your on-prem deployment, to subscribe to a paid plan, or to have Bito manage the AI Architect.
 
@@ -139,18 +139,18 @@ Please contact us at [support@bito.ai](mailto:support@bito.ai) for a **free Ente
 Before you start the AI Architect setup in your environment, make sure you have the following ready:
 
 ### **LLM API Keys**
-Required for personal use of AI Architect. Supports **Anthropic (Claude)** and **Grok** models. Add both keys for the best cost and coverage. AI Architect also supports **[Portkey](https://portkey.ai)** integration for custom proxy configurations.
+Required for personal use of AI Architect. An **Anthropic (Claude)** API key is mandatory; you can optionally also provide an **OpenAI (GPT)** API key. AI Architect also supports **[Portkey](https://portkey.ai)** integration for custom proxy configurations.
 
 ### **Bito Access Key**
-You'll need a **Bito account** and a **Bito Access Key** to authenticate AI Architect. You can sign up for a Bito account at https://alpha.bito.ai, and create an access key from Settings -> Advanced Settings **[Link](https://alpha.bito.ai/home/advanced)**. 
+You'll need a **Bito account** and a **Bito Access Key** to authenticate AI Architect. You can sign up for a Bito account at https://alpha.bito.ai, and create an access key from Settings -> Advanced Settings **[Link](https://alpha.bito.ai/home/advanced)**.
 
 ### **Git Access Token**
 Used by AI Architect to read and index your repositories. Bito supports **GitHub**, **GitLab**, and **Bitbucket**.
-- **GitHub classic Token with `repo` access**  Fine-grained tokens are not supported. [Learn more](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic)  
+- **GitHub classic Token with `repo` access**  Fine-grained tokens are not supported. [Learn more](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic)
 - **GitLab token with `api` scope)** [Learn more](https://docs.gitlab.com/user/profile/personal_access_tokens/#create-a-personal-access-token)
 - **Bitbucket Access Token:** Depending on your Bitbucket setup, you may need one of the following:
-  - For **Bitbucket Cloud** use **API Token**. [Learn more](https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/)
-  - For **Bitbucket Enterprise (Self-Hosted)** use **HTTP Access Token**. [Learn more](https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html)
+    - For **Bitbucket Cloud** use **API Token**. [Learn more](https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/)
+    - For **Bitbucket Enterprise (Self-Hosted)** use **HTTP Access Token**. [Learn more](https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html)
 
 ---
 
@@ -217,7 +217,7 @@ Setting up AI Architect has three main steps:
 2. Configuring repositories to index
 3. Start the indexing process
 
-Once the indexing is complete, you can configure AI Architect MCP server in any coding or chat agent that supports MCP. This guide will walk you through installing and setting up AI Architect in a self-hosted environment.  
+Once the indexing is complete, you can configure AI Architect MCP server in any coding or chat agent that supports MCP. This guide will walk you through installing and setting up AI Architect in a self-hosted environment.
 
 ### Step 1- Install AI Architect
 
@@ -252,7 +252,7 @@ The setup script will guide you through configuring AI Architect with your Git p
 - **Git provider** (required) - Choose your Git provider (GitHub, GitLab or BitBucket)
 - **Git Access Token** (required) - Personal access token for your Git provider
 - **Enterprise Git provider domain URL** - Provide your custom domain URL if you are using enterprise/self-hosted version of Git provider (e.g., https://github.company.com).
-- **LLM Keys** (required unless you have a Bito Enterprise Plan) - We suggest you provide API keys for both **Anthropic** and **Grok** LLMs for the best cost and coverage.
+- **LLM Keys** (required unless you have a Bito Enterprise Plan) - Provide an API key for **Anthropic** (mandatory). You can optionally also provide an **OpenAI** API key.
 - **Generate a secure MCP access token?** - Type `y` to generate a secure access token (recommended)
 - **Configure SSO?** - Optionally enable Single Sign-On (SSO) authentication. Choose between **Bito authentication** (OAuth via your Bito workspace) or **Enterprise IdP** (SAML/OIDC via your corporate identity provider). See [SSO Authentication](#6-sso-authentication) for more details.
 
@@ -281,11 +281,11 @@ repository:
 After updating the `.bitoarch-config.yaml` file, you have two options to proceed with adding your repositories for indexing:
 
 1. **Auto Configure (recommended)**
-   - Automatically saves the repositories and starts indexing
-   - If needed, edit the repo list before selecting this option
+    - Automatically saves the repositories and starts indexing
+    - If needed, edit the repo list before selecting this option
 
 2. **Manual Setup**
-   - You have to manually update the configuration file and then start the indexing. Below we have provided complete details of the manual process.
+    - You have to manually update the configuration file and then start the indexing. Below we have provided complete details of the manual process.
 
 Once you select an option, your **Bito MCP URL** and **Bito MCP Access Token** will be displayed. Make sure to store them in a safe place, you'll need them later when configuring MCP server in your AI coding agent (e.g., Claude Code, Cursor, Windsurf, GitHub Copilot (VS Code), etc.).
 
@@ -457,13 +457,13 @@ AI Architect supports three authentication modes:
 SSO is configured during the setup process. When prompted with **"Configure SSO?"**, you can choose one of the following options:
 
 1. **Enterprise IdP (SAML/OIDC)**
-   - The setup process generates a configuration URL for your identity provider
-   - Open the URL in your browser and configure your IdP (e.g., Okta, Azure AD, Google Workspace) with the provided details
-   - Return to the setup and verify the connection
+    - The setup process generates a configuration URL for your identity provider
+    - Open the URL in your browser and configure your IdP (e.g., Okta, Azure AD, Google Workspace) with the provided details
+    - Return to the setup and verify the connection
 
 2. **Bito Authentication**
-   - Enables OAuth authentication using your Bito workspace credentials
-   - No additional IdP configuration is required
+    - Enables OAuth authentication using your Bito workspace credentials
+    - No additional IdP configuration is required
 
 > **Note:** You can also configure or reconfigure SSO at any time after installation using the `bitoarch sso setup` command.
 
