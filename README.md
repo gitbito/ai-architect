@@ -47,7 +47,7 @@
       <a href="#1-overview">Overview</a>
     </li>
     <li>
-      <a href="#2-prerequisites">Prerequisites</a>
+      <a href="#2-installation-requirements">Installation requirements</a>
     </li>
     <li>
       <a href="#3-installation-instructions">Installation instructions</a>
@@ -132,29 +132,29 @@ Please contact us at [support@bito.ai](mailto:support@bito.ai) for a **free Ente
 
 <br />
 
-<!-- Prerequisites -->
+<!-- Installation requirements -->
 
-## 2. Prerequisites
+## 2. Installation requirements
 
-Before you start the AI Architect setup in your environment, make sure you have the following ready:
+Before you start the AI Architect setup in your environment, make sure your environment meets the following requirements.
 
-### **LLM API Keys**
-Required for personal use of AI Architect. An **Anthropic (Claude)** API key is mandatory; you can optionally also provide an **OpenAI (GPT)** API key. AI Architect also supports **[Portkey](https://portkey.ai)** integration for custom proxy configurations.
+### **System requirements**
 
-### **Bito Access Key**
-You'll need a **Bito account** and a **Bito Access Key** to authenticate AI Architect. You can sign up for a Bito account at https://alpha.bito.ai, and create an access key from Settings -> Advanced Settings **[Link](https://alpha.bito.ai/home/advanced)**.
+| Tier | Repositories | vCPU | Memory | Storage |
+|------|--------------|------|--------|---------|
+| **Minimum** | up to 25 | 12 cores | 24 GB | 500 GB |
+| **Ideal** | 25 – 100 | 16 cores | 48 GB | 1.5 TB |
+| **Enterprise** | 100+ | 32+ cores | 128+ GB | 2 – 4 TB+ |
 
-### **Git Access Token**
-Used by AI Architect to read and index your repositories. Bito supports **GitHub**, **GitLab**, and **Bitbucket**.
-- **GitHub classic Token with `repo` access**  Fine-grained tokens are not supported. [Learn more](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic)
-- **GitLab token with `api` scope)** [Learn more](https://docs.gitlab.com/user/profile/personal_access_tokens/#create-a-personal-access-token)
-- **Bitbucket Access Token:** Depending on your Bitbucket setup, you may need one of the following:
-    - For **Bitbucket Cloud** use **API Token**. [Learn more](https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/)
-    - For **Bitbucket Enterprise (Self-Hosted)** use **HTTP Access Token**. [Learn more](https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html)
+> **Notes**
+> - **Large repositories:** Increase memory and storage by 50% above the tier baseline when any single repository exceeds 5 GB.
+> - **Indexing workload:** Indexing generates transient CPU and memory peaks above steady-state usage. The resources listed above include the headroom required to absorb these peaks; do not size below the tier minimums.
+> - **Persistent storage:** Automatically configured during installation using Docker volumes or Kubernetes PersistentVolumeClaims.
+> - **Production security:** Restrict access via firewall rules and front the deployment with a reverse proxy (e.g., Nginx) with HTTPS enabled.
 
 ---
 
-### System requirements
+### **Supported operating systems**
 
 The AI Architect supports the following operating systems:
 
@@ -164,7 +164,7 @@ The AI Architect supports the following operating systems:
 
 ---
 
-### WSL2 is required for Windows users
+### **WSL2 is required for Windows users**
 
 If you're running Windows, Windows Subsystem for Linux 2 (WSL2) must be installed before proceeding.
 
@@ -177,32 +177,37 @@ If you're running Windows, Windows Subsystem for Linux 2 (WSL2) must be installe
 ```
 3. Set up your Ubuntu username and password when prompted
 
-### Docker Desktop / Docker Service (required)
+---
 
-**Docker Compose** is required to run AI Architect. The easiest and recommended way to get Docker Compose is to install **Docker Desktop**.
+### **Supported deployment modes**
 
-Docker Desktop includes Docker Compose along with Docker Engine and Docker CLI which are Compose prerequisites.
+AI Architect supports two deployment modes. Choose the option that fits your infrastructure:
 
-[Install Docker Desktop](https://docs.docker.com/compose/install)
-
-**Configuration for Windows (WSL2):**
-
-If you're using Windows with WSL2, you need to enable Docker integration with your WSL distribution:
-
-1. Open **Docker Desktop**
-2. Go to **Settings > Resources > WSL Integration**
-3. Enable integration for your WSL distribution (e.g., Ubuntu)
-4. Click **Apply**
+| Mode | Use case | Requirements |
+|------|----------|--------------|
+| **Docker (Compose)** | Single-host deployments, evaluation, smaller teams | Docker Engine and Docker Compose. [Install Docker Desktop](https://docs.docker.com/compose/install) — includes both. |
+| **Kubernetes (Helm)** | Production deployments requiring high availability and horizontal scaling | A pre-configured Kubernetes cluster on your infrastructure. For testing in a single laptop or local machine, create a local cluster using KIND (Kubernetes in Docker) — see the [Kubernetes Deployment Guide](https://github.com/gitbito/ai-architect/blob/main/docs/KUBERNETES_DEPLOYMENT.md). |
 
 ---
 
-### Kubernetes cluster (optional)
+### **Bito Access Key**
 
-AI Architect supports Kubernetes as an alternative deployment option. For production deployments, a Kubernetes cluster must be pre-configured on your infrastructure.
+You'll need a **Bito account** and a **Bito Access Key** to authenticate AI Architect. You can sign up for a Bito account at https://alpha.bito.ai, and create an access key from Settings -> Advanced Settings **[Link](https://alpha.bito.ai/home/advanced)**.
 
-For testing and development purposes, you can create a local cluster using KIND (Kubernetes in Docker). Refer to the [Kubernetes Deployment Guide](https://github.com/gitbito/ai-architect/blob/main/docs/KUBERNETES_DEPLOYMENT.md) for detailed instructions.
+### **Git Access Token**
 
-> **Note:** Kubernetes deployment support is available from version 1.3.0 onwards.
+Required for AI Architect to read and index your repositories. Bito supports **GitHub**, **GitLab**, and **Bitbucket**.
+- **GitHub classic Token with `repo` access**  Fine-grained tokens are not supported. [Learn more](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic)
+- **GitLab token with `api` scope)** [Learn more](https://docs.gitlab.com/user/profile/personal_access_tokens/#create-a-personal-access-token)
+- **Bitbucket Access Token:** Depending on your Bitbucket setup, you may need one of the following:
+    - For **Bitbucket Cloud** use **API Token**. [Learn more](https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/)
+    - For **Bitbucket Enterprise (Self-Hosted)** use **HTTP Access Token**. [Learn more](https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html)
+
+### **LLM API Keys**
+
+Required for self-managed AI Architect deployments. An **Anthropic (Claude)** API key is mandatory; you can optionally also provide an **OpenAI (GPT)** API key. AI Architect also supports **[Portkey](https://portkey.ai)** integration for custom proxy configurations.
+
+To use Bito-hosted LLM instead (no LLM keys required from you), contact **[support@bito.ai](mailto:support@bito.ai)** about the [Bito Enterprise Plan](https://bito.ai/pricing/).
 
 ---
 
