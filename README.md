@@ -239,40 +239,30 @@ AI Architect automatically creates persistent volumes for:
 | Data Type | What's Stored | Sizing Guide |
 |-----------|---------------|--------------|
 | **Database** | Metadata, configs, analytics | ~5 MB per repo (500 MB for 100 repos) |
-| **Index data** | Cloned repositories + search indexes | ~1.5 GB per repository |
-| **Backups** | Database and configuration backups | 10 GB default |
+| **Index data** | Cloned repositories + search indexes + extracted edges/symbols | ~5 GB per repository |
+| **Backups** | Database and configuration backups (30-day retention default) | Scales with retention window |
 | **Temp/Logs** | Processing files and service logs | 10 GB default |
 
-**Disk space estimation:**
-```
-Storage Required = (Number_of_Repos × 1.5 GB) + 10 GB (MySQL + overhead)
-
-Examples:
-- 10 repos:  25 GB minimum
-- 50 repos:  85 GB minimum
-- 100 repos: 160 GB minimum
-```
-
-> **Note:** Storage requirements scale with repository size. Estimates assume average repos of 500 MB each.
 ---
 
 ### System requirements
 
-Default resource allocation: 5 CPU cores, 6 GB memory across all services.
+| Tier | Repositories | vCPU | Memory | Storage |
+|------|--------------|------|--------|---------|
+| **Minimum** | up to 25 | 12 cores | 24 GB | 500 GB |
+| **Ideal** | 25 – 100 | 16 cores | 48 GB | 1.5 TB |
+| **Enterprise** | 100+ | 32+ cores | 128+ GB | 2 – 4 TB+ |
 
-| Deployment Size | Repositories | CPU | Memory | Storage |
-|-----------------|--------------|-----|--------|---------|
-| **Small** | 1–20 | 6 cores | 8 GB | 50 GB |
-| **Medium** | 20–50 | 8 cores | 16 GB | 100 GB |
-| **Large** | 50–150 | 12 cores | 24 GB | 250 GB |
-| **Enterprise** | 150+ | 16+ cores | 32+ GB | 500+ GB |
+> **Notes**
+> - **Large repositories:** Increase memory and storage by 50% above the tier baseline when any single repository exceeds 5 GB.
+> - **Indexing workload:** Indexing generates transient CPU and memory peaks above steady-state usage. The resources listed above include the headroom required to absorb these peaks; do not size below the tier minimums.
 
 ---
 
 ### Deployment checklist
 
-- [ ] Verify system meets minimum requirements (6 cores, 8 GB RAM, 50 GB storage for up to 20 repos)
-- [ ] Calculate storage: `(Number_of_Repos × 1.5 GB) + 10 GB overhead`
+- [ ] Verify system meets the tier requirements above (refer to the System requirements table)
+- [ ] Provision storage per the tier table; double for monorepo-heavy environments
 - [ ] Ensure persistent storage is available for Docker volumes or Kubernetes PVCs
 - [ ] Plan for storage growth based on repository count and size
 - [ ] Configure firewall rules to restrict access to trusted IPs (services are exposed on all network interfaces)
