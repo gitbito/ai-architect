@@ -37,7 +37,7 @@
 bito_api_key: ""
 
 # OPTIONAL: Email used to register the local MCP with installed coding agents.
-# Leave blank to be prompted at install time; ignored if unused.
+# Leave blank to be prompted on Standalone install; ignored otherwise.
 user_email: ""
 
 git:
@@ -74,3 +74,27 @@ resources:
 #   cis_config: 5003
 #   mysql: 5004
 #   cis_tracker: 5005
+
+# OPTIONAL: Insights features. Run independently; both work better together.
+# Set "true" to enable a feature; leave empty to be prompted during install.
+insights:
+  git: ""                                   # set to true to enable commit-history insights (reuses git creds above)
+
+  ticket_tracker:
+    enabled: ""                             # set to true to enable Jira ticket insights
+    provider: jira                          # jira (only supported provider today)
+    base_url: ""                            # e.g. https://acme.atlassian.net
+    email: ""
+    api_token: ""                           # Atlassian → security → API tokens
+    host_type: cloud                        # cloud | self
+    project_keys: ""                        # comma-separated string ONLY (e.g. "PROJ,INFRA") — YAML list will fail
+
+  docs:
+    enabled: ""                             # set to true to enable Confluence docs insights
+    provider: confluence                    # confluence (only supported provider today)
+    url: ""                                 # e.g. https://acme.atlassian.net (with or without /wiki — we normalize)
+    email: ""                               # defaults to ticket_tracker.email
+    api_token: ""
+
+  git_lookback_days: ""                      # git insights lookback (days, default: 180, max: 730)
+  jira_lookback_days: ""                     # jira insights lookback (days, default: 180, max: 730)
