@@ -549,140 +549,12 @@ SSO sessions are configurable with the following defaults:
 
 <br />
 
-<!-- Insights (Git, Jira & Confluence) -->
+<!-- Insights (Jira & Confluence) -->
 
-## 7. Insights (Git, Jira & Confluence)
+## 7. Insights
 
-AI Architect can analyze your Git commit history, Jira tickets, and Confluence documentation to surface actionable insights — developer activity patterns, commit-ticket correlations, and documentation coverage gaps. Insights run independently of repository indexing and can be triggered on-demand or on a schedule.
+AI Architect optionally enriches the knowledge graph with insights from Git history, Jira, and Confluence — giving coding agents additional context about project activity, planned work, and documentation. Insights can be enabled and configured post-install; see the [Insights Documentation](https://docs.bito.ai/ai-architect/insights) for details.
 
-> **Note:** Insights is an optional feature. Repository indexing and MCP functionality work without it.
-
-For detailed setup instructions and configuration options, see the [Insights Documentation](https://docs.bito.ai/ai-architect/insights).
-
----
-
-### Enabling insights features
-
-Enable one or more insights sources during installation (when prompted) or at any time post-install:
-
-```bash
-bitoarch insights enable git              # Git commit analysis
-bitoarch insights enable ticket-tracker   # Jira ticket analysis
-bitoarch insights enable docs             # Confluence documentation analysis
-```
-
-Each `enable` command runs an interactive setup that collects the required credentials (e.g., Jira base URL, email, API token). Credentials are validated against the live API before saving.
-
----
-
-### Running insights
-
-Once at least one feature is enabled, trigger an analysis:
-
-```bash
-bitoarch insights run
-```
-
-On first run after enabling (or after an upgrade), the CLI prompts for any missing configuration such as Jira project keys and lookback period (number of days of history to analyze).
-
-To force a full re-analysis (ignoring previously computed state):
-
-```bash
-bitoarch insights run --force
-```
-
-> **Note:** Insights requires at least one successfully indexed repository. The CLI will block if indexing is in progress (mutual exclusion) and warn if the last indexing run failed.
-
----
-
-### Checking insights status
-
-Monitor insights analysis progress in real time:
-
-```bash
-bitoarch insights status
-```
-
-**Example output (while running):**
-
-```
-Insights Status
-
-  Overall: ≡ running (phase: analysis)
-
-  Git Insights:     ≡ analysis_complete (3/5 repos done)
-  Jira Insights:    ≡ running (2/4 projects analyzed, 0 failed)
-```
-
-**Example output (completed):**
-
-```
-Insights Status
-
-  Overall: ✓ completed
-
-  Git Insights:     ✓ completed (5/5 repos, 0 failed, merge: completed)
-  Jira Insights:    ✓ completed (4/4 projects, 0 failed, merge: completed)
-```
-
-A summary also appears in `bitoarch index-status` with a hint to run `bitoarch insights status` for full details.
-
----
-
-### Managing Jira project keys
-
-Control which Jira projects are included in ticket-tracker analysis:
-
-```bash
-bitoarch insights tracker-projects list                  # Show configured keys
-bitoarch insights tracker-projects add KEY1 KEY2         # Add project keys
-bitoarch insights tracker-projects remove KEY1            # Remove a key
-bitoarch insights discover-tracker-projects               # List all accessible projects
-```
-
----
-
-### Viewing insights configuration
-
-```bash
-bitoarch insights config
-```
-
-Displays the current state of all insights features, including enabled/disabled status, configured credentials (masked), project keys, and lookback period. Shows data from the server (cis-config) when available, with a fallback to local `.env-bitoarch` values.
-
----
-
-### Updating credentials
-
-Update credentials for ticket-tracker or docs integration without disabling and re-enabling:
-
-```bash
-bitoarch insights update-ticket-tracker   # Re-enter Jira URL, email, token, and project keys
-bitoarch insights update-doc-config       # Re-enter Confluence URL, email, and token
-```
-
-Credentials are validated against the live API before saving. If validation fails, you are prompted to retry.
-
----
-
-### Configuring lookback period
-
-Set how many days of history insights should analyze:
-
-```bash
-bitoarch insights set-lookback git 90              # Analyze last 90 days of Git history
-bitoarch insights set-lookback ticket-tracker 180  # Analyze last 180 days of Jira tickets
-```
-
----
-
-### Disabling insights features
-
-```bash
-bitoarch insights disable git
-bitoarch insights disable ticket-tracker
-bitoarch insights disable docs
-```
 
 ---
 
@@ -805,16 +677,11 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `bitoarch insights config` | Show insights configuration and status | `bitoarch insights config` |
-| `bitoarch insights status` | Show detailed insights workflow status with per-feature progress | `bitoarch insights status` |
 | `bitoarch insights enable [feature]` | Enable an insights feature (`git`, `ticket-tracker`, or `docs`) | `bitoarch insights enable git` |
 | `bitoarch insights disable [feature]` | Disable an insights feature | `bitoarch insights disable ticket-tracker` |
-| `bitoarch insights run [--force]` | Run insights analysis on-demand. `--force` re-analyzes all data | `bitoarch insights run --force` |
-| `bitoarch insights set-lookback [feature] [days]` | Set lookback period for a feature (`git` or `ticket-tracker`) | `bitoarch insights set-lookback git 90` |
-| `bitoarch insights tracker-projects [action]` | Manage Jira project keys (`list`, `add`, `remove`, `set`) | `bitoarch insights tracker-projects add PROJ INFRA` |
-| `bitoarch insights discover-tracker-projects` | List all accessible Jira projects | `bitoarch insights discover-tracker-projects` |
-| `bitoarch insights update-ticket-tracker` | Update ticket-tracker credentials (Jira URL, email, token) | `bitoarch insights update-ticket-tracker` |
-| `bitoarch insights update-doc-config` | Update Confluence doc integration credentials | `bitoarch insights update-doc-config` |
+| `bitoarch insights run [--force]` | Run insights analysis. `--force` re-analyzes all data | `bitoarch insights run --force` |
+| `bitoarch insights status` | Show insights analysis progress | `bitoarch insights status` |
+| `bitoarch insights config` | Show insights configuration | `bitoarch insights config` |
 
 ### Output options
 
