@@ -768,6 +768,21 @@ migrate_config() {
         merge_new_env_configs "$NEW_ENV"
     fi
 
+    # Migrate legacy unified lookback to per-feature keys (pre-1.8.4).
+    if [[ -f "$NEW_ENV" ]] && grep -qE '^INSIGHTS_LOOKBACK_DAYS=' "$NEW_ENV"; then
+        local _legacy_lb
+        _legacy_lb=$(grep -E '^INSIGHTS_LOOKBACK_DAYS=' "$NEW_ENV" | cut -d= -f2- | tr -d '"' | tr -d "'")
+        if [ -n "$_legacy_lb" ]; then
+            grep -qE '^INSIGHTS_GIT_LOOKBACK_DAYS=.+' "$NEW_ENV" \
+                || sed -i.bak "s|^INSIGHTS_GIT_LOOKBACK_DAYS=.*|INSIGHTS_GIT_LOOKBACK_DAYS=${_legacy_lb}|" "$NEW_ENV"
+            grep -qE '^INSIGHTS_JIRA_LOOKBACK_DAYS=.+' "$NEW_ENV" \
+                || sed -i.bak "s|^INSIGHTS_JIRA_LOOKBACK_DAYS=.*|INSIGHTS_JIRA_LOOKBACK_DAYS=${_legacy_lb}|" "$NEW_ENV"
+        fi
+        sed -i.bak '/^INSIGHTS_LOOKBACK_DAYS=/d' "$NEW_ENV"
+        rm -f "${NEW_ENV}.bak"
+        log_silent "Migrated INSIGHTS_LOOKBACK_DAYS to per-feature keys"
+    fi
+
     # Replace TEMPORAL_MYSQL_PASSWORD placeholder with a real random secret.
     # The default template ships CHANGE_THIS_PASSWORD so every install would
     # otherwise end up with the same well-known password for temporal_user.
@@ -932,6 +947,8 @@ volumes:
   ai_architect_temp:
     external: true
     name: ${old_volumes_project}_ai_architect_temp
+  ai_architect_insights:
+    driver: local
 EOF
         log_silent "Volume config: external (from $old_volumes_project)"
     else
@@ -945,6 +962,8 @@ volumes:
   ai_architect_backups:
     driver: local
   ai_architect_temp:
+    driver: local
+  ai_architect_insights:
     driver: local
 EOF
         log_silent "Volume config: fresh local volumes"
@@ -1661,6 +1680,17 @@ run_database_migrations() {
     return 0
 }
 
+_version_lt() {
+    local IFS='.'
+    local i v1=($1) v2=($2)
+    for ((i=0; i<3; i++)); do
+        local a=${v1[i]:-0} b=${v2[i]:-0}
+        (( a < b )) && return 0
+        (( a > b )) && return 1
+    done
+    return 1
+}
+
 _resolve_new_version() {
     local v=""
     if [[ -f "${NEW_DIR}/versions/service-versions.json" ]]; then
@@ -1668,6 +1698,20 @@ _resolve_new_version() {
     fi
     [[ -z "$v" || "$v" == "null" ]] && v="${TARGET_VERSION:-unknown}"
     echo "$v"
+}
+
+_print_insights_announcement() {
+    if _version_lt "${CURRENT_VERSION:-0.0.0}" "1.8.4"; then
+        echo ""
+        echo -e "  ${GREEN}──────────────────────────────────────────────────────${NC}"
+        echo -e "  ${GREEN}NEW:${NC} Insights — analyze Git history, tickets, and docs."
+        echo -e "  Get started:"
+        echo -e "    ${YELLOW}bitoarch insights enable git${NC}"
+        echo -e "    ${YELLOW}bitoarch insights enable ticket-tracker${NC}"
+        echo -e "    ${YELLOW}bitoarch insights run${NC}"
+        echo -e "  ${GREEN}──────────────────────────────────────────────────────${NC}"
+        echo ""
+    fi
 }
 
 print_kubernetes_success() {
@@ -1682,6 +1726,7 @@ print_kubernetes_success() {
     echo -e "   ${YELLOW}bitoarch status${NC}"
     echo -e "   ${YELLOW}bitoarch index-status${NC}"
     echo ""
+    _print_insights_announcement
     echo -e "Log:      ${LOG_FILE}"
     echo -e "Cleanup:  ${YELLOW}rm -rf ${OLD_DIR}${NC}  (after verifying new version)"
     echo ""
@@ -1707,6 +1752,7 @@ print_success() {
     echo -e "   ${BLUE}cd ${NEW_DIR}${NC}"
     echo -e "   ${YELLOW}bitoarch status${NC}"
     echo ""
+    _print_insights_announcement
     echo -e "Log:      ${LOG_FILE}"
     echo -e "Cleanup:  ${YELLOW}rm -rf ${OLD_DIR}${NC}  (after verifying new version)"
     echo ""
