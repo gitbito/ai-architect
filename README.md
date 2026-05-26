@@ -62,19 +62,22 @@
       <a href="#6-sso-authentication">SSO Authentication</a>
     </li>
     <li>
-      <a href="#7-configuring-ai-architect-for-bito-ai-code-review-agent">Configuring AI Architect for Bito AI Code Review Agent</a>
+      <a href="#7-insights-git-jira--confluence">Insights (Git, Jira & Confluence)</a>
     </li>
     <li>
-      <a href="#8-command-reference">Command reference</a>
+      <a href="#8-configuring-ai-architect-for-bito-ai-code-review-agent">Configuring AI Architect for Bito AI Code Review Agent</a>
     </li>
     <li>
-      <a href="#9-troubleshooting-guide">Troubleshooting guide</a>
+      <a href="#9-command-reference">Command reference</a>
     </li>
     <li>
-      <a href="#10-upgrading-ai-architect">Upgrading AI Architect</a>
+      <a href="#10-troubleshooting-guide">Troubleshooting guide</a>
     </li>
     <li>
-      <a href="#11-support--contact">Support & contact</a>
+      <a href="#11-upgrading-ai-architect">Upgrading AI Architect</a>
+    </li>
+    <li>
+      <a href="#12-support--contact">Support & contact</a>
     </li>
   </ol>
 </details>
@@ -546,9 +549,148 @@ SSO sessions are configurable with the following defaults:
 
 <br />
 
+<!-- Insights (Git, Jira & Confluence) -->
+
+## 7. Insights (Git, Jira & Confluence)
+
+AI Architect can analyze your Git commit history, Jira tickets, and Confluence documentation to surface actionable insights — developer activity patterns, commit-ticket correlations, and documentation coverage gaps. Insights run independently of repository indexing and can be triggered on-demand or on a schedule.
+
+> **Note:** Insights is an optional feature. Repository indexing and MCP functionality work without it.
+
+For detailed setup instructions and configuration options, see the [Insights Documentation](https://docs.bito.ai/ai-architect/insights).
+
+---
+
+### Enabling insights features
+
+Enable one or more insights sources during installation (when prompted) or at any time post-install:
+
+```bash
+bitoarch insights enable git              # Git commit analysis
+bitoarch insights enable ticket-tracker   # Jira ticket analysis
+bitoarch insights enable docs             # Confluence documentation analysis
+```
+
+Each `enable` command runs an interactive setup that collects the required credentials (e.g., Jira base URL, email, API token). Credentials are validated against the live API before saving.
+
+---
+
+### Running insights
+
+Once at least one feature is enabled, trigger an analysis:
+
+```bash
+bitoarch insights run
+```
+
+On first run after enabling (or after an upgrade), the CLI prompts for any missing configuration such as Jira project keys and lookback period (number of days of history to analyze).
+
+To force a full re-analysis (ignoring previously computed state):
+
+```bash
+bitoarch insights run --force
+```
+
+> **Note:** Insights requires at least one successfully indexed repository. The CLI will block if indexing is in progress (mutual exclusion) and warn if the last indexing run failed.
+
+---
+
+### Checking insights status
+
+Monitor insights analysis progress in real time:
+
+```bash
+bitoarch insights status
+```
+
+**Example output (while running):**
+
+```
+Insights Status
+
+  Overall: ≡ running (phase: analysis)
+
+  Git Insights:     ≡ analysis_complete (3/5 repos done)
+  Jira Insights:    ≡ running (2/4 projects analyzed, 0 failed)
+```
+
+**Example output (completed):**
+
+```
+Insights Status
+
+  Overall: ✓ completed
+
+  Git Insights:     ✓ completed (5/5 repos, 0 failed, merge: completed)
+  Jira Insights:    ✓ completed (4/4 projects, 0 failed, merge: completed)
+```
+
+A summary also appears in `bitoarch index-status` with a hint to run `bitoarch insights status` for full details.
+
+---
+
+### Managing Jira project keys
+
+Control which Jira projects are included in ticket-tracker analysis:
+
+```bash
+bitoarch insights tracker-projects list                  # Show configured keys
+bitoarch insights tracker-projects add KEY1 KEY2         # Add project keys
+bitoarch insights tracker-projects remove KEY1            # Remove a key
+bitoarch insights discover-tracker-projects               # List all accessible projects
+```
+
+---
+
+### Viewing insights configuration
+
+```bash
+bitoarch insights config
+```
+
+Displays the current state of all insights features, including enabled/disabled status, configured credentials (masked), project keys, and lookback period. Shows data from the server (cis-config) when available, with a fallback to local `.env-bitoarch` values.
+
+---
+
+### Updating credentials
+
+Update credentials for ticket-tracker or docs integration without disabling and re-enabling:
+
+```bash
+bitoarch insights update-ticket-tracker   # Re-enter Jira URL, email, token, and project keys
+bitoarch insights update-doc-config       # Re-enter Confluence URL, email, and token
+```
+
+Credentials are validated against the live API before saving. If validation fails, you are prompted to retry.
+
+---
+
+### Configuring lookback period
+
+Set how many days of history insights should analyze:
+
+```bash
+bitoarch insights set-lookback git 90              # Analyze last 90 days of Git history
+bitoarch insights set-lookback ticket-tracker 180  # Analyze last 180 days of Jira tickets
+```
+
+---
+
+### Disabling insights features
+
+```bash
+bitoarch insights disable git
+bitoarch insights disable ticket-tracker
+bitoarch insights disable docs
+```
+
+---
+
+<br />
+
 <!-- Configuring AI Architect for Bito AI Code Review Agent -->
 
-## 7. Configuring AI Architect for Bito AI Code Review Agent
+## 8. Configuring AI Architect for Bito AI Code Review Agent
 
 Now that you have **AI Architect** set up, you can take your code quality to the next level by integrating it with **[Bito's AI Code Review Agent](https://bito.ai/product/ai-code-review-agent/)**. This powerful combination delivers significantly more accurate and context-aware code reviews by leveraging the deep codebase knowledge graph that AI Architect has built.
 
@@ -579,7 +721,7 @@ This enables the AI Code Review Agent to:
 
 <!-- Command reference -->
 
-## 8. Command reference
+## 9. Command reference
 
 Quick reference to CLI commands for managing Bito's AI Architect.
 
@@ -659,6 +801,21 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 | `bitoarch sso disable` | Disable SSO (temporary or permanent) | `bitoarch sso disable` |
 | `bitoarch sso rotate-key` | Rotate SSO tenant management key | `bitoarch sso rotate-key` |
 
+### Insights
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `bitoarch insights config` | Show insights configuration and status | `bitoarch insights config` |
+| `bitoarch insights status` | Show detailed insights workflow status with per-feature progress | `bitoarch insights status` |
+| `bitoarch insights enable [feature]` | Enable an insights feature (`git`, `ticket-tracker`, or `docs`) | `bitoarch insights enable git` |
+| `bitoarch insights disable [feature]` | Disable an insights feature | `bitoarch insights disable ticket-tracker` |
+| `bitoarch insights run [--force]` | Run insights analysis on-demand. `--force` re-analyzes all data | `bitoarch insights run --force` |
+| `bitoarch insights set-lookback [feature] [days]` | Set lookback period for a feature (`git` or `ticket-tracker`) | `bitoarch insights set-lookback git 90` |
+| `bitoarch insights tracker-projects [action]` | Manage Jira project keys (`list`, `add`, `remove`, `set`) | `bitoarch insights tracker-projects add PROJ INFRA` |
+| `bitoarch insights discover-tracker-projects` | List all accessible Jira projects | `bitoarch insights discover-tracker-projects` |
+| `bitoarch insights update-ticket-tracker` | Update ticket-tracker credentials (Jira URL, email, token) | `bitoarch insights update-ticket-tracker` |
+| `bitoarch insights update-doc-config` | Update Confluence doc integration credentials | `bitoarch insights update-doc-config` |
+
 ### Output options
 
 Add these flags to any command:
@@ -691,7 +848,7 @@ bitoarch --version
 
 <!-- Troubleshooting guide -->
 
-## 9. Troubleshooting guide
+## 10. Troubleshooting guide
 
 ```bash
 # Check all services
@@ -736,7 +893,7 @@ bitoarch update
 ---
 
 
-## 10. Upgrading AI Architect
+## 11. Upgrading AI Architect
 
 [](#overview)
 
@@ -830,7 +987,7 @@ curl -fsSL https://aiarchitect.bito.ai/install.sh | bash
 
 <!-- Support & contact -->
 
-## 11. Support & contact
+## 12. Support & contact
 
 For comprehensive information and guidance on the AI Architect, including installation and configuration instructions, please refer to our detailed **[documentation available here](https://docs.bito.ai/ai-architect/overview)**. Should you require further assistance or have any inquiries, our support team is readily available to assist you.
 
