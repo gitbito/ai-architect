@@ -62,7 +62,7 @@
       <a href="#6-sso-authentication">SSO Authentication</a>
     </li>
     <li>
-      <a href="#7-insights-git-jira--confluence">Insights (Git, Jira & Confluence)</a>
+      <a href="#7-insights">Insights</a>
     </li>
     <li>
       <a href="#8-configuring-ai-architect-for-bito-ai-code-review-agent">Configuring AI Architect for Bito AI Code Review Agent</a>
@@ -549,12 +549,89 @@ SSO sessions are configurable with the following defaults:
 
 <br />
 
-<!-- Insights (Jira & Confluence) -->
+<!-- Insights -->
 
 ## 7. Insights
 
-AI Architect optionally enriches the knowledge graph with insights from Git history, Jira, and Confluence — giving coding agents additional context about project activity, planned work, and documentation. Insights can be enabled and configured post-install; see the [Insights Documentation](https://docs.bito.ai/ai-architect/insights) for details.
+AI Architect optionally enriches the knowledge graph with context from Jira, and Confluence giving coding agents deeper understanding of project activity, planned work, and documentation.
 
+> **Note:** Insights is an optional feature. Repository indexing and MCP functionality work without it.
+
+---
+
+### Enabling and disabling features
+
+Enable one or more insights sources during installation (when prompted) or at any time post-install:
+
+```bash
+bitoarch insights enable git
+bitoarch insights enable ticket-tracker
+bitoarch insights enable docs
+```
+
+Each `enable` command runs an interactive setup that collects the required credentials.
+
+To disable a feature:
+
+```bash
+bitoarch insights disable git
+bitoarch insights disable ticket-tracker
+bitoarch insights disable docs
+```
+
+---
+
+### Running insights
+
+```bash
+bitoarch insights run
+bitoarch insights run --force              # Force a full refresh
+```
+
+---
+
+### Checking status
+
+```bash
+bitoarch insights status
+```
+
+---
+
+### Managing Jira project keys
+
+```bash
+bitoarch insights tracker-projects list
+bitoarch insights tracker-projects add KEY1 KEY2
+bitoarch insights tracker-projects remove KEY1
+bitoarch insights discover-tracker-projects
+```
+
+---
+
+### Updating credentials
+
+```bash
+bitoarch insights update-ticket-tracker
+bitoarch insights update-doc-config
+```
+
+---
+
+### Viewing configuration
+
+```bash
+bitoarch insights config
+```
+
+---
+
+### Configuring lookback period
+
+```bash
+bitoarch insights set-lookback git 90
+bitoarch insights set-lookback ticket-tracker 180
+```
 
 ---
 
@@ -679,9 +756,14 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 |---------|-------------|---------|
 | `bitoarch insights enable [feature]` | Enable an insights feature (`git`, `ticket-tracker`, or `docs`) | `bitoarch insights enable git` |
 | `bitoarch insights disable [feature]` | Disable an insights feature | `bitoarch insights disable ticket-tracker` |
-| `bitoarch insights run [--force]` | Run insights analysis. `--force` re-analyzes all data | `bitoarch insights run --force` |
-| `bitoarch insights status` | Show insights analysis progress | `bitoarch insights status` |
+| `bitoarch insights run [--force]` | Run insights. `--force` forces a full refresh | `bitoarch insights run` |
+| `bitoarch insights status` | Show insights progress | `bitoarch insights status` |
 | `bitoarch insights config` | Show insights configuration | `bitoarch insights config` |
+| `bitoarch insights set-lookback [feature] [days]` | Set lookback period for a feature | `bitoarch insights set-lookback git 90` |
+| `bitoarch insights tracker-projects [action]` | Manage Jira project keys (`list`, `add`, `remove`, `set`) | `bitoarch insights tracker-projects add PROJ` |
+| `bitoarch insights discover-tracker-projects` | List accessible Jira projects | `bitoarch insights discover-tracker-projects` |
+| `bitoarch insights update-ticket-tracker` | Update ticket-tracker credentials | `bitoarch insights update-ticket-tracker` |
+| `bitoarch insights update-doc-config` | Update Confluence credentials | `bitoarch insights update-doc-config` |
 
 ### Output options
 
