@@ -37,7 +37,7 @@
 bito_api_key: ""
 
 # OPTIONAL: Email used to register the local MCP with installed coding agents.
-# Leave blank to be prompted on Standalone install; ignored otherwise.
+# Leave blank to be prompted at install time; ignored if unused.
 user_email: ""
 
 git:
