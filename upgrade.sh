@@ -1704,11 +1704,8 @@ _print_insights_announcement() {
     if _version_lt "${CURRENT_VERSION:-0.0.0}" "1.8.4"; then
         echo ""
         echo -e "  ${GREEN}──────────────────────────────────────────────────────${NC}"
-        echo -e "  ${GREEN}NEW:${NC} Insights — analyze Git history, tickets, and docs."
-        echo -e "  Get started:"
-        echo -e "    ${YELLOW}bitoarch insights enable git${NC}"
-        echo -e "    ${YELLOW}bitoarch insights enable ticket-tracker${NC}"
-        echo -e "    ${YELLOW}bitoarch insights run${NC}"
+        echo -e "  ${GREEN}NEW:${NC} Insights — enrich the knowledge graph with context from Git history, Jira, and Confluence."
+        echo -e "  Run ${YELLOW}bitoarch insights --help${NC} to get started."
         echo -e "  ${GREEN}──────────────────────────────────────────────────────${NC}"
         echo ""
     fi
