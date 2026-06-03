@@ -49,6 +49,41 @@ msg_error() { echo -e "${RED}✗${NC} $1" | tee -a "$LOG_FILE"; }
 msg_info() { echo -e "${BLUE}ℹ${NC} $1" | tee -a "$LOG_FILE"; }
 msg_warn() { echo -e "${YELLOW}⚠${NC} $1" | tee -a "$LOG_FILE"; }
 
+# Safe single-step progress spinner. Inlined (not sourced from
+# scripts/lib/progress-output.sh) so upgrade.sh stays a standalone script with
+# no external deps. Backgrounds the WORK, animates the spinner in the
+# FOREGROUND, polls the child with `kill -0` (signal 0 = existence check; sends
+# NO signal), and waits for natural exit. Never calls `kill <pid>` — avoids the
+# documented macOS SIGTERM-on-parent race (exit 143). Honors BITOARCH_NO_SPINNER
+# / non-TTY with a static line. Wrapped command's output is routed to LOG_FILE.
+# Usage: run_with_spinner "<label>" <cmd> [args...]
+run_with_spinner() {
+    local label="$1"; shift
+    local start=$SECONDS rc=0
+
+    if [ ! -t 1 ] || [ "${BITOARCH_NO_SPINNER:-}" = "1" ]; then
+        printf '[+] %s ... ' "$label"
+        ( "$@" >> "$LOG_FILE" 2>&1 ) || rc=$?
+    else
+        ( "$@" >> "$LOG_FILE" 2>&1 ) &
+        local child=$! spinner='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏' i=0
+        while kill -0 "$child" 2>/dev/null; do
+            printf '\r[+] %s %s' "$label" "${spinner:$i:1}"
+            i=$(( (i + 1) % ${#spinner} ))
+            sleep 0.1
+        done
+        wait "$child" 2>/dev/null || rc=$?
+        printf '\r\033[K[+] %s ... ' "$label"
+    fi
+
+    if [ "$rc" -eq 0 ]; then
+        printf '%b✓%b done (%ds)\n' "${GREEN:-}" "${NC:-}" "$((SECONDS - start))"
+    else
+        printf '%b✗%b failed (%ds)\n' "${RED:-}" "${NC:-}" "$((SECONDS - start))" >&2
+    fi
+    return $rc
+}
+
 print_header() {
     echo "" | tee -a "$LOG_FILE"
     echo -e "${BLUE}${BOLD:-}$1${NC}" | tee -a "$LOG_FILE"
@@ -154,6 +189,98 @@ detect_deployment_type() {
     log_silent "Deployment type: ${DEPLOYMENT_TYPE} (source: ${deployment_type_file:-default})"
 }
 
+# A directory is a valid install if it carries the install structure
+# (scripts/bitoarch.sh) AND the customer's .env-bitoarch is reachable — in
+# the dir itself (1.3.x layout) or the standard config dir (1.4.x+). The
+# .env-bitoarch is NOT required to live in the install dir, which is why the
+# old "must have OLD_DIR/.env-bitoarch" check wrongly rejected fresh
+# Docker/K8s installs (their env lives only in /usr/local/etc/bitoarch).
+_validate_install_dir() {
+    local dir="$1"
+    [ -n "$dir" ] && [ -d "$dir" ] || return 1
+    # Dev-clone guard: a dir with .git/ is a source checkout, not a deployed
+    # install. Mirrors uninstall.sh's safety check — prevents treating a clone
+    # as OLD_DIR (which would, e.g., surface "rm -rf <clone>" in the
+    # post-upgrade cleanup hint).
+    [ -d "${dir}/.git" ] && return 1
+    [ -f "${dir}/scripts/bitoarch.sh" ] || return 1
+    [ -f "${dir}/.env-bitoarch" ] && return 0
+    [ -f "/usr/local/etc/bitoarch/.env-bitoarch" ] && return 0
+    [ -f "${HOME}/.local/bitoarch/etc/.env-bitoarch" ] && return 0
+    return 1
+}
+
+# Resolve the customer's active .env-bitoarch: install-dir copy for 1.3.x,
+# standard config dir for 1.4.x+.
+_resolve_old_env() {
+    if [ -f "${OLD_DIR}/.env-bitoarch" ]; then
+        echo "${OLD_DIR}/.env-bitoarch"
+    elif [ -f "/usr/local/etc/bitoarch/.env-bitoarch" ]; then
+        echo "/usr/local/etc/bitoarch/.env-bitoarch"
+    elif [ -f "${HOME}/.local/bitoarch/etc/.env-bitoarch" ]; then
+        echo "${HOME}/.local/bitoarch/etc/.env-bitoarch"
+    else
+        echo "${OLD_DIR}/.env-bitoarch"
+    fi
+}
+
+# Resolve the install dir to upgrade, in priority order:
+#   1. --old-path (explicit override)
+#   2. Script location — when run as the bundled <install>/scripts/upgrade.sh,
+#      the install dir is the script's parent. Reliable for every edition
+#      (standalone, Enterprise, K8s) regardless of CLI-symlink layout, which is
+#      how upgrades are normally invoked. Dev checkouts are filtered out by
+#      _validate_install_dir's .git guard.
+#   3. bitoarch CLI symlink (user- or system-layout) — for runs from outside
+#      the install tree; resolves whatever install the live CLI points at.
+#   4. Prompt (last resort).
+# Every candidate is confirmed by _validate_install_dir, which accepts an install
+# whose .env-bitoarch lives in the standard config dir (the Enterprise/K8s case).
+_resolve_old_dir() {
+    local candidate target cli
+
+    if [[ -n "$CUSTOM_OLD_PATH" ]]; then
+        OLD_DIR="${CUSTOM_OLD_PATH/#\~/$HOME}"
+        msg_info "Using provided installation path: $OLD_DIR"
+        if ! _validate_install_dir "$OLD_DIR"; then
+            msg_error "Not a valid installation directory: $OLD_DIR"
+            exit 1
+        fi
+        return 0
+    fi
+
+    # Bundled-script case: <install>/scripts/upgrade.sh -> install dir is SCRIPT_DIR's parent.
+    candidate="$(dirname "$SCRIPT_DIR")"
+    if _validate_install_dir "$candidate"; then
+        OLD_DIR="$candidate"
+        msg_info "Detected installation: $OLD_DIR"
+        return 0
+    fi
+
+    # CLI symlink (user- or system-layout) -> <install>/scripts/bitoarch.sh.
+    for cli in "${HOME}/.local/bin/bitoarch" "/usr/local/bin/bitoarch"; do
+        [ -L "$cli" ] || continue
+        target="$(readlink "$cli")"
+        candidate="$(cd "$(dirname "$target")/.." 2>/dev/null && pwd)"
+        if _validate_install_dir "$candidate"; then
+            OLD_DIR="$candidate"
+            msg_info "Detected installation: $OLD_DIR"
+            return 0
+        fi
+    done
+
+    echo ""
+    msg_warn "Could not auto-detect the existing installation"
+    msg_info "Provide the path to your existing installation"
+    echo ""
+    read -p "Enter path to existing installation: " OLD_DIR
+    OLD_DIR="${OLD_DIR/#\~/$HOME}"
+    if ! _validate_install_dir "$OLD_DIR"; then
+        msg_error "Not a valid installation directory"
+        exit 1
+    fi
+}
+
 # Parse arguments
 parse_args() {
     TARGET_VERSION="latest"
@@ -184,38 +311,13 @@ parse_args() {
         esac
     done
     
-    # Determine OLD_DIR
-    if [[ -n "$CUSTOM_OLD_PATH" ]]; then
-        # User provided --old-path (expand tilde if present)
-        OLD_DIR="${CUSTOM_OLD_PATH/#\~/$HOME}"
-        msg_info "Using provided installation path: $OLD_DIR"
-    else
-        # Try to detect from script location
-        OLD_DIR="$(dirname "$SCRIPT_DIR")"
-        
-        # Check if this looks like an installation directory
-        if [[ ! -f "${OLD_DIR}/.env-bitoarch" ]]; then
-            # Not run from within installation, prompt for path
-            echo ""
-            msg_warn "Script is not running from within an installation directory"
-            msg_info "Please provide the path to your existing installation"
-            echo ""
-            read -p "Enter path to existing installation: " OLD_DIR
-            
-            if [[ -z "$OLD_DIR" ]] || [[ ! -d "$OLD_DIR" ]]; then
-                msg_error "Invalid installation path"
-                exit 1
-            fi
-            
-            if [[ ! -f "${OLD_DIR}/.env-bitoarch" ]]; then
-                msg_error "Not a valid installation directory (missing .env-bitoarch)"
-                exit 1
-            fi
-        fi
-    fi
-    
+    # Determine OLD_DIR via the resolver cascade (--old-path → CLI symlink →
+    # prompt). Validates against standard config dir so fresh Docker/K8s
+    # installs (env only in /usr/local/etc/bitoarch) are accepted.
+    _resolve_old_dir
+
     PARENT_DIR="$(dirname "$OLD_DIR")"
-    OLD_ENV="${OLD_DIR}/.env-bitoarch"
+    OLD_ENV="$(_resolve_old_env)"
     
     # Detect deployment type first
     detect_deployment_type
@@ -299,15 +401,16 @@ check_prerequisites() {
             exit 1
         fi
         
-        # Detect docker compose command for standalone mode
-        if [[ "$UPGRADE_MODE" == "standalone" ]]; then
-            DOCKER_COMPOSE_CMD=$(detect_docker_compose)
-            if [[ -z "$DOCKER_COMPOSE_CMD" ]]; then
-                msg_error "Docker Compose not found (tried 'docker compose' and 'docker-compose')"
-                exit 1
-            fi
-            log_silent "Using docker compose command: $DOCKER_COMPOSE_CMD"
+        # Detect docker compose command for ALL non-k8s modes (embedded +
+        # standalone use it). Previously gated on standalone only, which made
+        # embedded silently fall through to `docker compose` even on hosts
+        # that only have docker-compose v1 installed.
+        DOCKER_COMPOSE_CMD=$(detect_docker_compose)
+        if [[ -z "$DOCKER_COMPOSE_CMD" ]]; then
+            msg_error "Docker Compose not found (tried 'docker compose' and 'docker-compose')"
+            exit 1
         fi
+        log_silent "Using docker compose command: $DOCKER_COMPOSE_CMD"
     fi
     
     msg_success "System requirements verified"
@@ -757,6 +860,12 @@ migrate_config() {
         cp "${config_source}/.bitoarch-config.yaml" "${NEW_DIR}/.bitoarch-config.yaml"
     fi
 
+    # Carry the user's git-repo-list.yaml so the new install retains tracked
+    # repos (otherwise the new install loses prior repo state).
+    if [[ -f "${config_source}/.git-repo-list.yaml" ]]; then
+        cp "${config_source}/.git-repo-list.yaml" "${NEW_DIR}/.git-repo-list.yaml"
+    fi
+
     if [[ -f "${config_source}/.deployment-type" ]]; then
         cp "${config_source}/.deployment-type" "${NEW_DIR}/.deployment-type"
     else
@@ -948,8 +1057,25 @@ volumes:
     external: true
     name: ${old_volumes_project}_ai_architect_temp
   ai_architect_insights:
+EOF
+        # ai_architect_insights only exists in installs from 1.8.4+, but
+        # check_old_volumes keys off the four core volumes — so old_volumes_project
+        # can be set while the insights volume does not exist (upgrade from an
+        # older release). Declaring a missing volume external hard-fails
+        # compose-up ("declared as external, but could not be found"), so mount
+        # it external only when present, else local so compose creates a fresh one.
+        if docker volume inspect "${old_volumes_project}_ai_architect_insights" >/dev/null 2>&1; then
+            cat >> "${compose_file}.tmp" << EOF
+    external: true
+    name: ${old_volumes_project}_ai_architect_insights
+EOF
+            log_silent "Insights volume: reusing ${old_volumes_project}_ai_architect_insights"
+        else
+            cat >> "${compose_file}.tmp" << 'EOF'
     driver: local
 EOF
+            log_silent "Insights volume: fresh (no prior volume for old project)"
+        fi
         log_silent "Volume config: external (from $old_volumes_project)"
     else
         cat >> "${compose_file}.tmp" << 'EOF'
@@ -972,16 +1098,137 @@ EOF
     mv "${compose_file}.tmp" "$compose_file"
 }
 
-# Start new version using setup.sh --from-existing-config
+# Remove leftover ai-architect-* containers and network so the new compose-up
+# doesn't collide on container_name. Idempotent. Output → setup.log.
+_cleanup_previous_containers() {
+    docker ps -a --filter "name=ai-architect" --format "{{.Names}}" \
+        | xargs -r docker rm -f >> "$LOG_FILE" 2>&1 || true
+    docker network ls --format "{{.Name}}" | grep -F "ai-architect-network" \
+        | xargs -r docker network rm >> "$LOG_FILE" 2>&1 || true
+}
+
+# Run `docker compose up -d --pull always` against $env_file in the background,
+# wait for completion, return compose's exit code. Handles v2 / v1 / pre-v1.25
+# compose variants. Caller is responsible for cd "$NEW_DIR". Output appended
+# to LOG_FILE so compose errors survive in setup.log.
+_compose_up_new_version() {
+    local env_file="$1"
+    log_silent "compose up -d --pull always | env_file=$env_file | cwd=$(pwd) | compose_cmd=${DOCKER_COMPOSE_CMD:-docker compose}"
+
+    if [[ "$DOCKER_COMPOSE_CMD" == "docker compose" ]] || [[ -z "$DOCKER_COMPOSE_CMD" ]]; then
+        docker compose --env-file "$env_file" up -d --pull always >> "$LOG_FILE" 2>&1 &
+    elif $DOCKER_COMPOSE_CMD --help | grep -q "\-\-env-file"; then
+        $DOCKER_COMPOSE_CMD --env-file "$env_file" pull >> "$LOG_FILE" 2>&1 || true
+        $DOCKER_COMPOSE_CMD --env-file "$env_file" up -d >> "$LOG_FILE" 2>&1 &
+    else
+        set -a; source "$env_file"; set +a
+        $DOCKER_COMPOSE_CMD pull >> "$LOG_FILE" 2>&1 || true
+        $DOCKER_COMPOSE_CMD up -d >> "$LOG_FILE" 2>&1 &
+    fi
+    local pid=$!
+    while kill -0 $pid 2>/dev/null; do sleep 2; done
+    set +e; wait $pid; local rc=$?; set -e
+    [ "$rc" -ne 0 ] && log_silent "compose up failed (rc=$rc)"
+    return $rc
+}
+
+# Bring new-install artifacts into place before the deploy step. Applies to
+# all upgrade modes. Each step self-gates so Enterprise / non-HTTPS installs
+# no-op the parts they don't need. Replaces the side effects that
+# setup.sh --from-existing-config used to perform (CLI relink, MCP cert prep).
+prepare_new_install_artifacts() {
+    msg_info "Preparing new install artifacts..."
+
+    # CLI symlink → new install. Was previously done inline by setup.sh
+    # (embedded); consolidated here so all modes get the relink.
+    local cli_target="${HOME}/.local/bin/bitoarch"
+    local cli_source="${NEW_DIR}/scripts/bitoarch.sh"
+    if [[ -f "$cli_source" ]]; then
+        mkdir -p "$(dirname "$cli_target")"
+        chmod +x "$cli_source"
+        ln -sf "$cli_source" "$cli_target"
+        log_silent "CLI symlink updated: $cli_target -> $cli_source"
+    fi
+
+    # MCP HTTPS cert provisioning — must run in upgrade.sh's shell (not a
+    # subshell): the function exports HOST_MCP_CERT_DIR + XMCP_INTERNAL_PORT
+    # which docker-compose.yml needs at compose-up time. Self-gates on
+    # MCP_TRANSPORT=https so Enterprise / HTTP-only no-ops. path-manager.sh
+    # sourced first because mcp-cert.sh depends on get_user_cache_dir.
+    if [[ "$UPGRADE_MODE" != "kubernetes" ]] && [[ -f "${NEW_DIR}/scripts/lib/mcp-cert.sh" ]]; then
+        local _mcp_t
+        _mcp_t=$(grep -E '^MCP_TRANSPORT=' "${NEW_DIR}/.env-bitoarch" 2>/dev/null \
+                 | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")
+        export MCP_TRANSPORT="${_mcp_t:-http}"
+        if [ -f "${NEW_DIR}/scripts/lib/path-manager.sh" ]; then
+            # shellcheck disable=SC1091
+            source "${NEW_DIR}/scripts/lib/path-manager.sh"
+            command -v init_paths >/dev/null 2>&1 && init_paths >/dev/null 2>&1 || true
+        fi
+        # shellcheck disable=SC1091
+        source "${NEW_DIR}/scripts/lib/mcp-cert.sh"
+        if command -v mcp_cert_prepare_for_compose >/dev/null 2>&1; then
+            mcp_cert_prepare_for_compose >> "$LOG_FILE" 2>&1 || true
+        fi
+    fi
+
+    msg_success "Install artifacts prepared"
+}
+
+# Fire install_run's post-install hooks against the new install. Sources
+# install.sh from NEW_DIR which transitively loads path-manager,
+# bitoarch-config, all hook libs, and the shared apply/persist helpers.
+# Re-exports install-mode flags from the customer's .env-bitoarch, applies
+# Standalone defaults for any not yet present, fires the hooks, then
+# persists the resulting flag set. Each hook self-gates on its own flag
+# (auto_recovery_enabled, MCP_TRANSPORT, etc.), so Enterprise installs
+# no-op the Standalone-only ones.
+run_post_install_hooks() {
+    log_silent "Running post-install hooks..."
+    (
+        export SCRIPT_DIR="${NEW_DIR}"
+        export PLATFORM_DIR="${NEW_DIR}"
+
+        # shellcheck disable=SC1091
+        [ -f "${NEW_DIR}/scripts/lib/install.sh" ] && source "${NEW_DIR}/scripts/lib/install.sh"
+
+        # Re-export install-mode flags from the customer's .env-bitoarch so
+        # the standalone-defaults check + the hook predicates see them.
+        local env_file flag v
+        env_file=$(get_config_file 2>/dev/null)
+        if [ -n "$env_file" ] && [ -f "$env_file" ]; then
+            for flag in SKIP_SSO_PROMPT AUTO_GENERATE_MCP_TOKEN COMPACT_INSTALL_PROGRESS BITOARCH_AUTORECOVERY; do
+                v=$(grep -E "^${flag}=" "$env_file" 2>/dev/null \
+                    | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")
+                [ -n "$v" ] && export "$flag=$v"
+            done
+        fi
+
+        command -v _install_apply_standalone_defaults >/dev/null 2>&1 && \
+            _install_apply_standalone_defaults
+
+        command -v restart_policy_migrate >/dev/null 2>&1 && restart_policy_migrate >> "$LOG_FILE" 2>&1 || true
+        command -v autostart_install     >/dev/null 2>&1 && autostart_install     >> "$LOG_FILE" 2>&1 || true
+        command -v cert_cron_install     >/dev/null 2>&1 && cert_cron_install     >> "$LOG_FILE" 2>&1 || true
+
+        command -v _install_persist_mode_flags >/dev/null 2>&1 && \
+            _install_persist_mode_flags
+    )
+    log_silent "Post-install hooks completed"
+}
+
+# Start new version - EMBEDDED MODE (direct docker compose).
+# Mirrors start_new_version_standalone's compose-up pattern. CLI relink,
+# MCP cert prep, and SQL staging are handled by prepare_new_install_artifacts.
 start_new_version() {
-    msg_info "Starting new version..."
-    
+    log_silent "Starting new version..."
+
     cd "$NEW_DIR" || exit 1
-    
+
     configure_volumes
-    
-    # CRITICAL: Sync migrated configs to standard location BEFORE running setup.sh
-    # so setup.sh reads the correct (old) credentials.
+
+    # Sync migrated configs to standard location so anything reading via
+    # get_config_file() / get_config_dir() sees the carried-over values.
     # shellcheck disable=SC1090
     source "${NEW_DIR}/scripts/lib/path-manager.sh"
     init_paths
@@ -989,7 +1236,7 @@ start_new_version() {
     local standard_config_dir="$(get_config_dir)"
     mkdir -p "$standard_config_dir"
 
-    for config_file in .env-bitoarch .env-llm-bitoarch .bitoarch-config.yaml .deployment-type; do
+    for config_file in .env-bitoarch .env-llm-bitoarch .bitoarch-config.yaml .git-repo-list.yaml .deployment-type; do
         if [[ -f "${NEW_DIR}/${config_file}" ]]; then
             cp "${NEW_DIR}/${config_file}" "$standard_config_dir/${config_file}"
         fi
@@ -997,113 +1244,74 @@ start_new_version() {
 
     log_silent "Configs synced to $standard_config_dir"
 
+    _cleanup_previous_containers
+
     msg_info "Starting services (this may take 2-5 minutes)..."
-    
-    # Run setup.sh in background and show progress
-    ./setup.sh --from-existing-config > "$LOG_FILE" 2>&1 &
-    local setup_pid=$!
-    
-    # Show progress dots while setup.sh is running
-    while kill -0 $setup_pid 2>/dev/null; do
-        echo -n "."
-        sleep 2
-    done
-    echo ""
-    
-    # Check exit status (disable set -e temporarily)
-    set +e
-    wait $setup_pid
-    local exit_code=$?
-    set -e
-    
-    if [ $exit_code -eq 0 ]; then
-        msg_success "New version started"
-    else
-        msg_error "Failed to start new version (exit code: $exit_code)"
-        msg_error "Check log file for details: $LOG_FILE"
-        echo ""
-        tail -30 "$LOG_FILE"
-        echo ""
+    if ! run_with_spinner "AI Architect Deployment In Progress" \
+            _deploy_and_wait_healthy "${standard_config_dir}/.env-bitoarch"; then
+        msg_error "Failed to start new version"
+        msg_info "Check log file: $LOG_FILE"
         exit 1
     fi
+    log_silent "New version started"
 }
 
 # Start new version - STANDALONE MODE (direct docker compose)
 start_new_version_standalone() {
-    msg_info "Starting new version (standalone mode)..."
+    log_silent "Starting new version (standalone mode)..."
 
     cd "$NEW_DIR" || exit 1
     configure_volumes
-
-    msg_info "Cleaning up previous installation..."
-    docker ps -a --filter "name=ai-architect" --format "{{.Names}}" | xargs -r docker rm -f >> "$LOG_FILE" 2>&1 || true
-    docker network ls --format "{{.Name}}" | grep "ai-architect-network" | xargs -r docker network rm >> "$LOG_FILE" 2>&1 || true
+    _cleanup_previous_containers
 
     msg_info "Starting services (this may take 2-5 minutes)..."
-    
-    if [[ "$DOCKER_COMPOSE_CMD" == "docker compose" ]]; then
-        docker compose --env-file "$ENV_FILE" up -d --pull always > "$LOG_FILE" 2>&1 &
-    else
-        # For docker-compose v1, use --env-file flag (requires docker-compose 1.25.0+)
-        # Fallback to sourcing if very old version
-        if $DOCKER_COMPOSE_CMD --help | grep -q "\-\-env-file"; then
-            $DOCKER_COMPOSE_CMD --env-file "$ENV_FILE" pull >> "$LOG_FILE" 2>&1 || true
-            $DOCKER_COMPOSE_CMD --env-file "$ENV_FILE" up -d > "$LOG_FILE" 2>&1 &
-        else
-            # Legacy fallback: source the file
-            set -a
-            source "$ENV_FILE"
-            set +a
-            $DOCKER_COMPOSE_CMD pull >> "$LOG_FILE" 2>&1 || true
-            $DOCKER_COMPOSE_CMD up -d > "$LOG_FILE" 2>&1 &
-        fi
-    fi
-    
-    local compose_pid=$!
-    
-    while kill -0 $compose_pid 2>/dev/null; do
-        echo -n "."
-        sleep 2
-    done
-    echo ""
-    
-    set +e
-    wait $compose_pid
-    local exit_code=$?
-    set -e
-    
-    if [ $exit_code -eq 0 ]; then
-        msg_success "New version started"
-    else
-        msg_error "Failed to start new version (exit code: $exit_code)"
-        msg_error "Check log file for details: $LOG_FILE"
-        echo ""
-        tail -30 "$LOG_FILE"
-        echo ""
+    if ! run_with_spinner "AI Architect Deployment In Progress" \
+            _deploy_and_wait_healthy "$ENV_FILE"; then
+        msg_error "Failed to start new version"
+        msg_info "Check log file: $LOG_FILE"
         exit 1
     fi
+    log_silent "New version started"
 }
 
-# Wait for services
-wait_for_services() {
-    msg_info "Waiting for services to initialize..."
-    sleep 10
-    msg_success "Services initialized"
+# Compose-up the new version, then poll bitoarch health until all services are
+# healthy (or UPGRADE_HEALTH_WAIT_SECS elapses). One unit so run_with_spinner
+# can wrap the whole deploy+settle as a single backgrounded command. Polling
+# actual health (not a fixed sleep) is what keeps post-install hooks
+# (autostart/cert-cron via launchd RunAtLoad) from firing before cis-manager
+# finishes its first-boot Wingman download. Returns non-zero only if compose-up
+# fails; a health-wait timeout still returns 0 (post-install hooks self-gate,
+# so a slow-but-up stack shouldn't abort the upgrade).
+_deploy_and_wait_healthy() {
+    local env_file="$1"
+    _compose_up_new_version "$env_file" || return 1
+
+    local elapsed=0 budget="${UPGRADE_HEALTH_WAIT_SECS:-360}"
+    local cli="${HOME}/.local/bin/bitoarch"
+    while [ "$elapsed" -lt "$budget" ]; do
+        if "$cli" health >/dev/null 2>&1; then
+            log_silent "Services healthy after ${elapsed}s"
+            return 0
+        fi
+        sleep 10
+        elapsed=$((elapsed + 10))
+    done
+    log_silent "Services not fully healthy after ${budget}s; proceeding"
+    return 0
 }
 
 # Check service status
 check_services() {
-    msg_info "Verifying AI Architect services..."
-    
+    log_silent "Verifying AI Architect services..."
+
     cd "$NEW_DIR" || exit 1
-    
+
     local running_count=$(docker ps --filter "name=ai-architect" --filter "status=running" --format "{{.Names}}" 2>/dev/null | wc -l | tr -d ' ')
-    
+
     if [[ "$running_count" -gt 0 ]]; then
-        msg_success "Found $running_count service(s) running"
-        echo ""
-        docker ps --filter "name=ai-architect" --format "table {{.Names}}\t{{.Status}}" 2>/dev/null | grep -v "temporal" | head -11
-        echo ""
+        log_silent "Found $running_count service(s) running"
+        docker ps --filter "name=ai-architect" --format "table {{.Names}}\t{{.Status}}" 2>/dev/null \
+            | grep -v "temporal" | head -11 >> "$LOG_FILE" 2>&1
     else
         msg_warn "No services appear to be running yet - they may still be starting"
         msg_info "Check status: bitoarch status"
@@ -1134,7 +1342,7 @@ stop_old_version() {
     cd "$OLD_DIR" || exit 1
 
     if ./setup.sh --stop >> "$LOG_FILE" 2>&1; then
-        msg_success "Old version stopped"
+        log_silent "Old version stopped"
     else
         msg_warn "Some issues stopping old version"
     fi
@@ -1147,10 +1355,10 @@ stop_old_version_standalone() {
     local old_containers=$(docker ps --filter "name=ai-architect" --format "{{.Names}}" 2>/dev/null)
     
     if [[ -n "$old_containers" ]]; then
-        msg_info "Stopping old containers..."
+        log_silent "Stopping old containers..."
         log_silent "Containers to stop: $old_containers"
         echo "$old_containers" | xargs -r docker stop >> "$LOG_FILE" 2>&1
-        msg_success "Old version stopped"
+        log_silent "Old version stopped"
     else
         log_silent "No old containers running, skipping stop"
     fi
@@ -1359,12 +1567,14 @@ upgrade_kubernetes() {
     local config_ext="${CIS_CONFIG_EXTERNAL_PORT:-5003}"
     local mysql_ext="${MYSQL_EXTERNAL_PORT:-5004}"
     local tracker_ext="${CIS_TRACKER_EXTERNAL_PORT:-5005}"
+    local temporal_ext="${TEMPORAL_EXTERNAL_PORT:-5006}"
 
     local provider_int="${XMCP_HTTP_PORT:-8080}"
     local manager_int="${CIS_MANAGER_PORT:-9090}"
     local config_int="${CIS_CONFIG_PORT:-8081}"
     local mysql_int="${MYSQL_PORT:-3306}"
     local tracker_int="${CIS_TRACKING_PORT:-9920}"
+    local temporal_int="${TEMPORAL_PORT:-7233}"
 
     # Launch port-forwards with proper daemonization
     # Use: nohup + stdin from /dev/null + disown to fully detach from shell
@@ -1386,6 +1596,10 @@ upgrade_kubernetes() {
 
     nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-tracker "${tracker_ext}:${tracker_int}" </dev/null >> "$LOG_FILE" 2>&1 &
     disown 2>/dev/null || true
+    sleep 0.5
+
+    nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-temporal "${temporal_ext}:${temporal_int}" </dev/null >> "$LOG_FILE" 2>&1 &
+    disown 2>/dev/null || true
     sleep 2
 
     # Verify and retry port-forwards with health check
@@ -1395,13 +1609,13 @@ upgrade_kubernetes() {
     while [ $verify_attempt -le $max_verify_attempts ]; do
         local pf_count=$(ps aux | grep "kubectl port-forward" | grep -E "(-n |--namespace=|-n=)$namespace" | grep -v grep | wc -l | xargs)
 
-        if [ "$pf_count" -ge 5 ]; then
+        if [ "$pf_count" -ge 6 ]; then
             msg_success "Port-forwards established"
             break
         fi
 
         # Retry progress: keep counts in log, not terminal.
-        log_silent "Only $pf_count/5 port-forwards running (attempt $verify_attempt)"
+        log_silent "Only $pf_count/6 port-forwards running (attempt $verify_attempt)"
 
         # Restart missing port-forwards
         if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-provider" | grep -v grep >/dev/null 2>&1; then
@@ -1434,26 +1648,56 @@ upgrade_kubernetes() {
             disown 2>/dev/null || true
         fi
 
+        if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-temporal" | grep -v grep >/dev/null 2>&1; then
+            log_silent "Restarting temporal port-forward"
+            nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-temporal "${temporal_ext}:${temporal_int}" </dev/null >> "$LOG_FILE" 2>&1 &
+            disown 2>/dev/null || true
+        fi
+
         sleep 2
         verify_attempt=$((verify_attempt + 1))
     done
 
-    # Final health check - test actual connectivity
+    # Final connectivity check — and recreate any HTTP forward that doesn't
+    # answer (free the port + relaunch, mirroring restart_port_forward) instead
+    # of only warning. mysql/temporal aren't HTTP-probeable, so they're left
+    # best-effort. Inline (no sourcing) to work regardless of the old install's
+    # kubernetes-manager.sh version.
     msg_info "Verifying port-forward connectivity..."
-    local health_ok=true
-
-    for port in $provider_ext $manager_ext $config_ext $tracker_ext; do
-        if ! curl -s --connect-timeout 2 "http://localhost:$port/health" >/dev/null 2>&1; then
-            health_ok=false
-            log_silent "Port $port health check failed"
-        fi
+    local unhealthy=() hc_spec hc_svc hc_ext hc_int hc_ok hc_attempt
+    # HTTP services to health-check + recreate (mysql/temporal aren't HTTP).
+    local hc_specs=(
+        "ai-architect-provider:${provider_ext}:${provider_int}"
+        "ai-architect-manager:${manager_ext}:${manager_int}"
+        "ai-architect-config:${config_ext}:${config_int}"
+        "ai-architect-tracker:${tracker_ext}:${tracker_int}"
+    )
+    for hc_spec in "${hc_specs[@]}"; do
+        IFS=: read -r hc_svc hc_ext hc_int <<< "$hc_spec"
+        hc_ok=false
+        for hc_attempt in 1 2 3; do
+            if curl -s --connect-timeout 2 "http://localhost:${hc_ext}/health" >/dev/null 2>&1; then
+                hc_ok=true; break
+            fi
+            log_silent "Port ${hc_ext} (${hc_svc}) not answering; recreating (attempt ${hc_attempt})"
+            pkill -9 -f "kubectl port-forward.*svc/${hc_svc} .*${hc_ext}:" 2>/dev/null || true
+            if command -v lsof >/dev/null 2>&1; then
+                local hc_holders; hc_holders=$(lsof -ti :"${hc_ext}" -sTCP:LISTEN 2>/dev/null)
+                [ -n "$hc_holders" ] && { echo "$hc_holders" | xargs kill -9 2>/dev/null || true; }
+            fi
+            sleep 1
+            nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" "svc/${hc_svc}" "${hc_ext}:${hc_int}" </dev/null >> "$LOG_FILE" 2>&1 &
+            disown 2>/dev/null || true
+            sleep 1
+        done
+        [ "$hc_ok" = true ] || unhealthy+=("$hc_svc")
     done
 
-    if [ "$health_ok" = true ]; then
+    if [ ${#unhealthy[@]} -eq 0 ]; then
         msg_success "All port-forwards healthy and responding"
     else
-        msg_warn "Some port-forwards may not be healthy"
-        msg_info "If port-forwards die, restart with: bitoarch restart"
+        msg_warn "Port-forwards still unreachable after retry: ${unhealthy[*]}"
+        msg_info "Recover with: bitoarch restart"
     fi
 }
 
@@ -1669,8 +1913,8 @@ run_database_migrations() {
     # Update SQL_MIGRATION_PLATFORM_DIR to point to NEW installation
     SQL_MIGRATION_PLATFORM_DIR="$NEW_DIR"
     
-    # Run migrations
-    if run_upgrade_migrations; then
+    # Run migrations (stdout/stderr → LOG_FILE; terminal stays quiet)
+    if run_upgrade_migrations >> "$LOG_FILE" 2>&1; then
         log_silent "Database migrations completed"
     else
         msg_error "Database migrations failed"
@@ -1704,8 +1948,11 @@ _print_insights_announcement() {
     if _version_lt "${CURRENT_VERSION:-0.0.0}" "1.8.4"; then
         echo ""
         echo -e "  ${GREEN}──────────────────────────────────────────────────────${NC}"
-        echo -e "  ${GREEN}NEW:${NC} Insights — enrich the knowledge graph with context from Git history, Jira, and Confluence."
-        echo -e "  Run ${YELLOW}bitoarch insights --help${NC} to get started."
+        echo -e "  ${GREEN}NEW:${NC} Insights — analyze Git history, tickets, and docs."
+        echo -e "  Get started:"
+        echo -e "    ${YELLOW}bitoarch insights enable git${NC}"
+        echo -e "    ${YELLOW}bitoarch insights enable ticket-tracker${NC}"
+        echo -e "    ${YELLOW}bitoarch insights run${NC}"
         echo -e "  ${GREEN}──────────────────────────────────────────────────────${NC}"
         echo ""
     fi
@@ -1763,6 +2010,21 @@ main() {
 
     parse_args "$@"
 
+    # Promote LOG_FILE to the canonical setup.log (path-manager-resolved)
+    # once OLD_DIR is known so all phases land in the same file the rest of
+    # the platform uses. Falls back to the per-PID tmp log if path-manager
+    # isn't sourceable from OLD_DIR (very old installs).
+    if [ -f "${OLD_DIR}/scripts/lib/path-manager.sh" ]; then
+        # shellcheck disable=SC1091
+        ( source "${OLD_DIR}/scripts/lib/path-manager.sh"; init_paths 2>/dev/null; get_log_dir 2>/dev/null ) >/tmp/.bitoarch-logdir-$$ 2>/dev/null || true
+        local _logdir
+        _logdir=$(cat /tmp/.bitoarch-logdir-$$ 2>/dev/null | tail -1)
+        rm -f /tmp/.bitoarch-logdir-$$ 2>/dev/null
+        if [ -n "$_logdir" ] && mkdir -p "$_logdir" 2>/dev/null && [ -w "$_logdir" ]; then
+            LOG_FILE="${_logdir}/setup.log"
+        fi
+    fi
+
     log_silent "=== Upgrade Started ==="
     log_silent "OLD_DIR: ${OLD_DIR}"
     log_silent "Target version: ${TARGET_VERSION}"
@@ -1811,6 +2073,9 @@ main() {
         exit 1
     fi
 
+    # CLI relink + MCP cert prep — all modes.
+    prepare_new_install_artifacts
+
     if [[ "$UPGRADE_MODE" == "kubernetes" ]]; then
         # Kubernetes mode: Helm upgrade with rolling update
         upgrade_kubernetes
@@ -1818,25 +2083,32 @@ main() {
         run_database_migrations
         print_kubernetes_success
     elif [[ "$UPGRADE_MODE" == "standalone" ]]; then
-        # Standalone mode: stop old, start new, verify
+        # Standalone mode: stop old, start new (deploy+health under spinner), verify
         stop_old_version_standalone
         start_new_version_standalone
-        wait_for_services
         check_services
         run_database_migrations
         print_success
     else
-        # Embedded mode: start new, verify, stop old
+        # Embedded mode: start new (deploy+health under spinner), verify, stop old
         start_new_version
-        wait_for_services
         check_services
         run_database_migrations
         stop_old_version
         print_success
     fi
-    
+
+    # Standalone auto-recovery hooks (BITO-13219). Each hook self-gates on
+    # its own flag (auto_recovery_enabled, MCP_TRANSPORT, etc.), so
+    # Enterprise / K8s installs no-op the Standalone-only ones.
+    run_post_install_hooks
+
     log_silent "=== Upgrade Completed Successfully ==="
     log_silent "New installation: $NEW_DIR"
 }
 
-main "$@"
+# Only run main when executed directly; sourcing (e.g., from tests) loads the
+# function definitions without triggering the upgrade flow.
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    main "$@"
+fi
