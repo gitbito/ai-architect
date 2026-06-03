@@ -21,7 +21,7 @@
     <img src="https://github.com/user-attachments/assets/d06b4dcf-9234-4d9a-be65-1e6f1ecfe5fa" alt="Logo" width="150">
   </a>
 
-  <h3 align="center">AI Architect</h3>
+<h3 align="center">AI Architect</h3>
 
   <p align="center">
     System intelligence for your coding agents.
@@ -47,7 +47,7 @@
       <a href="#1-overview">Overview</a>
     </li>
     <li>
-      <a href="#2-prerequisites">Prerequisites</a>
+      <a href="#2-installation-requirements">Installation requirements</a>
     </li>
     <li>
       <a href="#3-installation-instructions">Installation instructions</a>
@@ -62,19 +62,22 @@
       <a href="#6-sso-authentication">SSO Authentication</a>
     </li>
     <li>
-      <a href="#7-configuring-ai-architect-for-bito-ai-code-review-agent">Configuring AI Architect for Bito AI Code Review Agent</a>
+      <a href="#7-insights">Insights</a>
     </li>
     <li>
-      <a href="#8-command-reference">Command reference</a>
+      <a href="#8-configuring-ai-architect-for-bito-ai-code-review-agent">Configuring AI Architect for Bito AI Code Review Agent</a>
     </li>
     <li>
-      <a href="#9-troubleshooting-guide">Troubleshooting guide</a>
+      <a href="#9-command-reference">Command reference</a>
     </li>
     <li>
-      <a href="#10-upgrading-ai-architect">Upgrading AI Architect</a>
+      <a href="#10-troubleshooting-guide">Troubleshooting guide</a>
     </li>
     <li>
-      <a href="#11-support--contact">Support & contact</a>
+      <a href="#11-upgrading-ai-architect">Upgrading AI Architect</a>
+    </li>
+    <li>
+      <a href="#12-support--contact">Support & contact</a>
     </li>
   </ol>
 </details>
@@ -108,7 +111,7 @@ Bito provides this in a completely secure fashion, with the AI Architect availab
 
 ---
 
-### AI Architect deployment, usage, and pricing 
+### AI Architect deployment, usage, and pricing
 
 You can choose to deploy and manage AI Architect in your own infrastructure with your own LLM keys, or let Bito host and manage it in the Bito cloud. An **on-prem deployment with an LLM access key is limited to a maximum of 5 developers**.  AI Architect can be deployed in three different configurations depending on your team size, infrastructure, and management requirements:
 
@@ -120,11 +123,11 @@ You can choose to deploy and manage AI Architect in your own infrastructure with
 
 > **ℹ️ Usage & Pricing**
 >
-> Teams of up to five members can use AI Architect for free with their preferred coding agents by using their own LLM API keys. Larger teams require **[Bito Enterprise Plan](https://bito.ai/pricing/)**, which includes bundled LLM tokens. Further, if you want to power Bito Code Review Agent with AI Architect, you will need Bito Enterprise Plan regardless of the size of the team. 
+> Teams of up to five members can use AI Architect for free with their preferred coding agents by using their own LLM API keys. Larger teams require **[Bito Enterprise Plan](https://bito.ai/pricing/)**, which includes bundled LLM tokens. Further, if you want to power Bito Code Review Agent with AI Architect, you will need Bito Enterprise Plan regardless of the size of the team.
 >
-> For the best cost and model coverage, we recommend adding both Anthropic and Grok API keys. AI Architect uses Claude Haiku and Grok Code Fast together to index your codebase.
+> An Anthropic API key is required. AI Architect uses Claude Haiku to index your codebase. You can optionally also provide an OpenAI API key.
 >
-> With both keys, indexing costs are typically **$0.20–$0.40 per MB** of indexable code (source files only; binaries, archives, and images are skipped). If only an Anthropic key is provided, indexing costs rise to **$1.00–$1.50 per MB**.
+> With an Anthropic API key, indexing costs are typically **$1.00–$1.50 per MB** of indexable code (source files only; binaries, archives, and images are skipped).
 
 Please contact us at [support@bito.ai](mailto:support@bito.ai) for a **free Enterprise trial** for your on-prem deployment, to subscribe to a paid plan, or to have Bito manage the AI Architect.
 
@@ -132,29 +135,29 @@ Please contact us at [support@bito.ai](mailto:support@bito.ai) for a **free Ente
 
 <br />
 
-<!-- Prerequisites -->
+<!-- Installation requirements -->
 
-## 2. Prerequisites
+## 2. Installation requirements
 
-Before you start the AI Architect setup in your environment, make sure you have the following ready:
+Before you start the AI Architect setup in your environment, make sure your environment meets the following requirements.
 
-### **LLM API Keys**
-Required for personal use of AI Architect. Supports **Anthropic (Claude)** and **Grok** models. Add both keys for the best cost and coverage. AI Architect also supports **[Portkey](https://portkey.ai)** integration for custom proxy configurations.
+### **System requirements**
 
-### **Bito Access Key**
-You'll need a **Bito account** and a **Bito Access Key** to authenticate AI Architect. You can sign up for a Bito account at https://alpha.bito.ai, and create an access key from Settings -> Advanced Settings **[Link](https://alpha.bito.ai/home/advanced)**. 
+| Tier | Repositories | vCPU | Memory | Storage |
+|------|--------------|------|--------|---------|
+| **Minimum** | up to 25 | 12 cores | 24 GB | 500 GB |
+| **Ideal** | 25 – 100 | 16 cores | 48 GB | 1.5 TB |
+| **Enterprise** | 100+ | 32+ cores | 128+ GB | 2 – 4 TB+ |
 
-### **Git Access Token**
-Used by AI Architect to read and index your repositories. Bito supports **GitHub**, **GitLab**, and **Bitbucket**.
-- **GitHub classic Token with `repo` access**  Fine-grained tokens are not supported. [Learn more](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic)  
-- **GitLab token with `api` scope)** [Learn more](https://docs.gitlab.com/user/profile/personal_access_tokens/#create-a-personal-access-token)
-- **Bitbucket Access Token:** Depending on your Bitbucket setup, you may need one of the following:
-  - For **Bitbucket Cloud** use **API Token**. [Learn more](https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/)
-  - For **Bitbucket Enterprise (Self-Hosted)** use **HTTP Access Token**. [Learn more](https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html)
+> **Notes**
+> - **Large repositories:** Increase memory and storage by 50% above the tier baseline when any single repository exceeds 5 GB.
+> - **Indexing workload:** Indexing generates transient CPU and memory peaks above steady-state usage. The resources listed above include the headroom required to absorb these peaks; do not size below the tier minimums.
+> - **Persistent storage:** Automatically configured during installation using Docker volumes or Kubernetes PersistentVolumeClaims.
+> - **Production security:** Restrict access via firewall rules and front the deployment with a reverse proxy (e.g., Nginx) with HTTPS enabled.
 
 ---
 
-### System requirements
+### **Supported operating systems**
 
 The AI Architect supports the following operating systems:
 
@@ -164,7 +167,7 @@ The AI Architect supports the following operating systems:
 
 ---
 
-### WSL2 is required for Windows users
+### **WSL2 is required for Windows users**
 
 If you're running Windows, Windows Subsystem for Linux 2 (WSL2) must be installed before proceeding.
 
@@ -177,32 +180,37 @@ If you're running Windows, Windows Subsystem for Linux 2 (WSL2) must be installe
 ```
 3. Set up your Ubuntu username and password when prompted
 
-### Docker Desktop / Docker Service (required)
+---
 
-**Docker Compose** is required to run AI Architect. The easiest and recommended way to get Docker Compose is to install **Docker Desktop**.
+### **Supported deployment modes**
 
-Docker Desktop includes Docker Compose along with Docker Engine and Docker CLI which are Compose prerequisites.
+AI Architect supports two deployment modes. Choose the option that fits your infrastructure:
 
-[Install Docker Desktop](https://docs.docker.com/compose/install)
-
-**Configuration for Windows (WSL2):**
-
-If you're using Windows with WSL2, you need to enable Docker integration with your WSL distribution:
-
-1. Open **Docker Desktop**
-2. Go to **Settings > Resources > WSL Integration**
-3. Enable integration for your WSL distribution (e.g., Ubuntu)
-4. Click **Apply**
+| Mode | Use case | Requirements |
+|------|----------|--------------|
+| **Docker (Compose)** | Single-host deployments, evaluation, smaller teams | Docker Engine and Docker Compose. [Install Docker Desktop](https://docs.docker.com/compose/install) — includes both. |
+| **Kubernetes (Helm)** | Production deployments requiring high availability and horizontal scaling | A pre-configured Kubernetes cluster on your infrastructure. For testing in a single laptop or local machine, create a local cluster using KIND (Kubernetes in Docker) — see the [Kubernetes Deployment Guide](https://github.com/gitbito/ai-architect/blob/main/docs/KUBERNETES_DEPLOYMENT.md). |
 
 ---
 
-### Kubernetes cluster (optional)
+### **Bito Access Key**
 
-AI Architect supports Kubernetes as an alternative deployment option. For production deployments, a Kubernetes cluster must be pre-configured on your infrastructure.
+You'll need a **Bito account** and a **Bito Access Key** to authenticate AI Architect. You can sign up for a Bito account at https://alpha.bito.ai, and create an access key from Settings -> Advanced Settings **[Link](https://alpha.bito.ai/home/advanced)**.
 
-For testing and development purposes, you can create a local cluster using KIND (Kubernetes in Docker). Refer to the [Kubernetes Deployment Guide](https://github.com/gitbito/ai-architect/blob/main/docs/KUBERNETES_DEPLOYMENT.md) for detailed instructions.
+### **Git Access Token**
 
-> **Note:** Kubernetes deployment support is available from version 1.3.0 onwards.
+Required for AI Architect to read and index your repositories. Bito supports **GitHub**, **GitLab**, and **Bitbucket**.
+- **GitHub classic Token with `repo` access**  Fine-grained tokens are not supported. [Learn more](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic)
+- **GitLab token with `api` scope)** [Learn more](https://docs.gitlab.com/user/profile/personal_access_tokens/#create-a-personal-access-token)
+- **Bitbucket Access Token:** Depending on your Bitbucket setup, you may need one of the following:
+    - For **Bitbucket Cloud** use **API Token**. [Learn more](https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/)
+    - For **Bitbucket Enterprise (Self-Hosted)** use **HTTP Access Token**. [Learn more](https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html)
+
+### **LLM API Keys**
+
+Required for self-managed AI Architect deployments. An **Anthropic (Claude)** API key is mandatory; you can optionally also provide an **OpenAI (GPT)** API key. AI Architect also supports **[Portkey](https://portkey.ai)** integration for custom proxy configurations.
+
+To use Bito-hosted LLM instead (no LLM keys required from you), contact **[support@bito.ai](mailto:support@bito.ai)** about the [Bito Enterprise Plan](https://bito.ai/pricing/).
 
 ---
 
@@ -217,7 +225,7 @@ Setting up AI Architect has three main steps:
 2. Configuring repositories to index
 3. Start the indexing process
 
-Once the indexing is complete, you can configure AI Architect MCP server in any coding or chat agent that supports MCP. This guide will walk you through installing and setting up AI Architect in a self-hosted environment.  
+Once the indexing is complete, you can configure AI Architect MCP server in any coding or chat agent that supports MCP. This guide will walk you through installing and setting up AI Architect in a self-hosted environment.
 
 ### Step 1- Install AI Architect
 
@@ -252,7 +260,7 @@ The setup script will guide you through configuring AI Architect with your Git p
 - **Git provider** (required) - Choose your Git provider (GitHub, GitLab or BitBucket)
 - **Git Access Token** (required) - Personal access token for your Git provider
 - **Enterprise Git provider domain URL** - Provide your custom domain URL if you are using enterprise/self-hosted version of Git provider (e.g., https://github.company.com).
-- **LLM Keys** (required unless you have a Bito Enterprise Plan) - We suggest you provide API keys for both **Anthropic** and **Grok** LLMs for the best cost and coverage.
+- **LLM Keys** (required unless you have a Bito Enterprise Plan) - Provide an API key for **Anthropic** (mandatory). You can optionally also provide an **OpenAI** API key.
 - **Generate a secure MCP access token?** - Type `y` to generate a secure access token (recommended)
 - **Configure SSO?** - Optionally enable Single Sign-On (SSO) authentication. Choose between **Bito authentication** (OAuth via your Bito workspace) or **Enterprise IdP** (SAML/OIDC via your corporate identity provider). See [SSO Authentication](#6-sso-authentication) for more details.
 
@@ -281,11 +289,11 @@ repository:
 After updating the `.bitoarch-config.yaml` file, you have two options to proceed with adding your repositories for indexing:
 
 1. **Auto Configure (recommended)**
-   - Automatically saves the repositories and starts indexing
-   - If needed, edit the repo list before selecting this option
+    - Automatically saves the repositories and starts indexing
+    - If needed, edit the repo list before selecting this option
 
 2. **Manual Setup**
-   - You have to manually update the configuration file and then start the indexing. Below we have provided complete details of the manual process.
+    - You have to manually update the configuration file and then start the indexing. Below we have provided complete details of the manual process.
 
 Once you select an option, your **Bito MCP URL** and **Bito MCP Access Token** will be displayed. Make sure to store them in a safe place, you'll need them later when configuring MCP server in your AI coding agent (e.g., Claude Code, Cursor, Windsurf, GitHub Copilot (VS Code), etc.).
 
@@ -457,13 +465,13 @@ AI Architect supports three authentication modes:
 SSO is configured during the setup process. When prompted with **"Configure SSO?"**, you can choose one of the following options:
 
 1. **Enterprise IdP (SAML/OIDC)**
-   - The setup process generates a configuration URL for your identity provider
-   - Open the URL in your browser and configure your IdP (e.g., Okta, Azure AD, Google Workspace) with the provided details
-   - Return to the setup and verify the connection
+    - The setup process generates a configuration URL for your identity provider
+    - Open the URL in your browser and configure your IdP (e.g., Okta, Azure AD, Google Workspace) with the provided details
+    - Return to the setup and verify the connection
 
 2. **Bito Authentication**
-   - Enables OAuth authentication using your Bito workspace credentials
-   - No additional IdP configuration is required
+    - Enables OAuth authentication using your Bito workspace credentials
+    - No additional IdP configuration is required
 
 > **Note:** You can also configure or reconfigure SSO at any time after installation using the `bitoarch sso setup` command.
 
@@ -541,9 +549,97 @@ SSO sessions are configurable with the following defaults:
 
 <br />
 
+<!-- Insights -->
+
+## 7. Insights
+
+AI Architect optionally enriches the knowledge graph with context from Jira, and Confluence giving coding agents deeper understanding of project activity, planned work, and documentation.
+
+> **Note:** Insights is an optional feature. Repository indexing and MCP functionality work without it.
+
+---
+
+### Enabling and disabling features
+
+Enable one or more insights sources during installation (when prompted) or at any time post-install:
+
+```bash
+bitoarch insights enable git
+bitoarch insights enable ticket-tracker
+bitoarch insights enable docs
+```
+
+Each `enable` command runs an interactive setup that collects the required credentials.
+
+To disable a feature:
+
+```bash
+bitoarch insights disable git
+bitoarch insights disable ticket-tracker
+bitoarch insights disable docs
+```
+
+---
+
+### Running insights
+
+```bash
+bitoarch insights run
+bitoarch insights run --force              # Force a full refresh
+```
+
+---
+
+### Checking status
+
+```bash
+bitoarch insights status
+```
+
+---
+
+### Managing Jira project keys
+
+```bash
+bitoarch insights tracker-projects list
+bitoarch insights tracker-projects add KEY1 KEY2
+bitoarch insights tracker-projects remove KEY1
+bitoarch insights discover-tracker-projects
+```
+
+---
+
+### Updating credentials
+
+```bash
+bitoarch insights update-ticket-tracker
+bitoarch insights update-doc-config
+```
+
+---
+
+### Viewing configuration
+
+```bash
+bitoarch insights config
+```
+
+---
+
+### Configuring lookback period
+
+```bash
+bitoarch insights set-lookback git 90
+bitoarch insights set-lookback ticket-tracker 180
+```
+
+---
+
+<br />
+
 <!-- Configuring AI Architect for Bito AI Code Review Agent -->
 
-## 7. Configuring AI Architect for Bito AI Code Review Agent
+## 8. Configuring AI Architect for Bito AI Code Review Agent
 
 Now that you have **AI Architect** set up, you can take your code quality to the next level by integrating it with **[Bito's AI Code Review Agent](https://bito.ai/product/ai-code-review-agent/)**. This powerful combination delivers significantly more accurate and context-aware code reviews by leveraging the deep codebase knowledge graph that AI Architect has built.
 
@@ -574,7 +670,7 @@ This enables the AI Code Review Agent to:
 
 <!-- Command reference -->
 
-## 8. Command reference
+## 9. Command reference
 
 Quick reference to CLI commands for managing Bito's AI Architect.
 
@@ -654,6 +750,21 @@ Quick reference to CLI commands for managing Bito's AI Architect.
 | `bitoarch sso disable` | Disable SSO (temporary or permanent) | `bitoarch sso disable` |
 | `bitoarch sso rotate-key` | Rotate SSO tenant management key | `bitoarch sso rotate-key` |
 
+### Insights
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `bitoarch insights enable [feature]` | Enable an insights feature (`git`, `ticket-tracker`, or `docs`) | `bitoarch insights enable git` |
+| `bitoarch insights disable [feature]` | Disable an insights feature | `bitoarch insights disable ticket-tracker` |
+| `bitoarch insights run [--force]` | Run insights. `--force` forces a full refresh | `bitoarch insights run` |
+| `bitoarch insights status` | Show insights progress | `bitoarch insights status` |
+| `bitoarch insights config` | Show insights configuration | `bitoarch insights config` |
+| `bitoarch insights set-lookback [feature] [days]` | Set lookback period for a feature | `bitoarch insights set-lookback git 90` |
+| `bitoarch insights tracker-projects [action]` | Manage Jira project keys (`list`, `add`, `remove`, `set`) | `bitoarch insights tracker-projects add PROJ` |
+| `bitoarch insights discover-tracker-projects` | List accessible Jira projects | `bitoarch insights discover-tracker-projects` |
+| `bitoarch insights update-ticket-tracker` | Update ticket-tracker credentials | `bitoarch insights update-ticket-tracker` |
+| `bitoarch insights update-doc-config` | Update Confluence credentials | `bitoarch insights update-doc-config` |
+
 ### Output options
 
 Add these flags to any command:
@@ -686,7 +797,7 @@ bitoarch --version
 
 <!-- Troubleshooting guide -->
 
-## 9. Troubleshooting guide
+## 10. Troubleshooting guide
 
 ```bash
 # Check all services
@@ -731,7 +842,7 @@ bitoarch update
 ---
 
 
-## 10. Upgrading AI Architect
+## 11. Upgrading AI Architect
 
 [](#overview)
 
@@ -825,7 +936,7 @@ curl -fsSL https://aiarchitect.bito.ai/install.sh | bash
 
 <!-- Support & contact -->
 
-## 11. Support & contact
+## 12. Support & contact
 
 For comprehensive information and guidance on the AI Architect, including installation and configuration instructions, please refer to our detailed **[documentation available here](https://docs.bito.ai/ai-architect/overview)**. Should you require further assistance or have any inquiries, our support team is readily available to assist you.
 
