@@ -199,12 +199,13 @@ You'll need a **Bito account** and a **Bito Access Key** to authenticate AI Arch
 
 ### **Git Access Token**
 
-Required for AI Architect to read and index your repositories. Bito supports **GitHub**, **GitLab**, and **Bitbucket**.
+Required for AI Architect to read and index your repositories. Bito supports **GitHub**, **GitLab**, **Bitbucket**, and **Azure DevOps**.
 - **GitHub classic Token with `repo` access**  Fine-grained tokens are not supported. [Learn more](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic)
 - **GitLab token with `api` scope)** [Learn more](https://docs.gitlab.com/user/profile/personal_access_tokens/#create-a-personal-access-token)
 - **Bitbucket Access Token:** Depending on your Bitbucket setup, you may need one of the following:
     - For **Bitbucket Cloud** use **API Token**. [Learn more](https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/)
     - For **Bitbucket Enterprise (Self-Hosted)** use **HTTP Access Token**. [Learn more](https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html)
+- **Azure DevOps (cloud) Personal Access Token with `Full access`** The token must be created for the Azure DevOps organization whose repositories you want to index. [Learn more](https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=Windows)
 
 ### **LLM API Keys**
 
@@ -257,7 +258,7 @@ The setup script will guide you through configuring AI Architect with your Git p
 > Refer to the [Prerequisites section](#2-prerequisites) for details on how to obtain these.
 - **Deployment type** - Choose between **Docker** or **Kubernetes** based on your infrastructure requirements
 - **Bito API Key** (required) - Your Bito authentication key
-- **Git provider** (required) - Choose your Git provider (GitHub, GitLab or BitBucket)
+- **Git provider** (required) - Choose your Git provider (GitHub, GitLab, BitBucket or Azure DevOps)
 - **Git Access Token** (required) - Personal access token for your Git provider
 - **Enterprise Git provider domain URL** - Provide your custom domain URL if you are using enterprise/self-hosted version of Git provider (e.g., https://github.company.com).
 - **LLM Keys** (required unless you have a Bito Enterprise Plan) - Provide an API key for **Anthropic** (mandatory). You can optionally also provide an **OpenAI** API key.
