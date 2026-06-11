@@ -37,29 +37,45 @@
 bito_api_key: ""
 
 # OPTIONAL: Email used to register the local MCP with installed coding agents.
-# Leave blank to be prompted at install time; ignored if unused.
+# Leave blank to be prompted on Standalone install; ignored otherwise.
 user_email: ""
 
 git:
-  # REQUIRED: github | gitlab | bitbucket  (leave empty to be prompted)
+  # REQUIRED: github | gitlab | bitbucket | azure-devops  (leave empty to be prompted)
   provider: ""
   # REQUIRED: personal access token
   access_token: ""
-  # OPTIONAL: enterprise git domain (empty for cloud)
+  # OPTIONAL: enterprise git domain (empty for cloud).
   domain_url: ""
   # OPTIONAL: bitbucket username/email
   user: ""
+  # REQUIRED for azure-devops cloud: your Azure DevOps organization (e.g. myorg)
+  organization: ""
 
 # OPTIONAL: Custom LLM provider keys
 # Resolution order: Bito API key -> env file -> prompt.
 # Leave commented to use Bito's LLM (when available) or be prompted at install.
-# Supported providers: Anthropic, OpenAI, Portkey (gateway).
+# Supported providers: Anthropic, OpenAI, Portkey, Google Vertex AI, Azure AI.
 # llm:
+#   # Anthropic
 #   anthropic_api_token: ""
+#
+#   # OpenAI
 #   openai_api_token: ""
+#
+#   # Portkey (gateway)
 #   portkey_api_token: ""
-#   portkey_api_url: ""          # optional; defaults to https://api.portkey.ai/v1
-#   portkey_model_name: ""       # required when portkey_api_token is set (format: @provider/model)
+#   portkey_api_url: ""                       # optional; defaults to https://api.portkey.ai/v1
+#   portkey_model_name: ""                    # required when portkey_api_token is set (format: @provider/model)
+#
+#   # Google Vertex AI (service-account mode; all 3 required)
+#   vertex_service_account_key_json: ""       # base64-encoded service-account JSON, single line (e.g. base64 < sa.json | tr -d '\n')
+#   vertex_project: ""                        # GCP project ID
+#   vertex_region: ""                         # e.g. us-central1
+#
+#   # Azure AI (both required)
+#   azure_ai_api_key: ""
+#   azure_ai_endpoint: ""                     # e.g. https://<resource>.openai.azure.com
 
 # Resource defaults (tune per-host as needed)
 resources:
