@@ -125,7 +125,7 @@ You can choose to deploy and manage AI Architect in your own infrastructure with
 >
 > Teams of up to five members can use AI Architect for free with their preferred coding agents by using their own LLM API keys. Larger teams require **[Bito Enterprise Plan](https://bito.ai/pricing/)**, which includes bundled LLM tokens. Further, if you want to power Bito Code Review Agent with AI Architect, you will need Bito Enterprise Plan regardless of the size of the team.
 >
-> An Anthropic API key is required. AI Architect uses Claude Haiku to index your codebase. You can optionally also provide an OpenAI API key.
+> An LLM API key is required. AI Architect supports **Anthropic (Claude)**, **OpenAI (GPT)**, **Google Vertex AI**, **Azure AI**, **Novita**, **AWS Bedrock**, and **Portkey** — configure any one as your provider.
 >
 > With an Anthropic API key, indexing costs are typically **$1.00–$1.50 per MB** of indexable code (source files only; binaries, archives, and images are skipped).
 
@@ -209,7 +209,15 @@ Required for AI Architect to read and index your repositories. Bito supports **G
 
 ### **LLM API Keys**
 
-Required for self-managed AI Architect deployments. An **Anthropic (Claude)** API key is mandatory; you can optionally also provide an **OpenAI (GPT)** API key. AI Architect also supports **[Portkey](https://portkey.ai)** integration for custom proxy configurations.
+Required for self-managed AI Architect deployments. You configure **one** LLM provider of your choice. AI Architect supports the following providers:
+
+- **Anthropic (Claude)** — Anthropic API key
+- **OpenAI (GPT)** — OpenAI API key
+- **Google Vertex AI** — GCP service-account key JSON (with Vertex AI access), GCP project ID, and region (all three required)
+- **Azure AI** — Azure AI API key and endpoint URL, e.g. `https://<resource>.openai.azure.com` (both required)
+- **Novita** — Novita API token
+- **AWS Bedrock** — AWS access key ID, secret access key, and region (all three required)
+- **[Portkey](https://portkey.ai)** — gateway/proxy integration for custom configurations
 
 To use Bito-hosted LLM instead (no LLM keys required from you), contact **[support@bito.ai](mailto:support@bito.ai)** about the [Bito Enterprise Plan](https://bito.ai/pricing/).
 
@@ -261,7 +269,7 @@ The setup script will guide you through configuring AI Architect with your Git p
 - **Git provider** (required) - Choose your Git provider (GitHub, GitLab, BitBucket or Azure DevOps)
 - **Git Access Token** (required) - Personal access token for your Git provider
 - **Enterprise Git provider domain URL** - Provide your custom domain URL if you are using enterprise/self-hosted version of Git provider (e.g., https://github.company.com).
-- **LLM Keys** (required unless you have a Bito Enterprise Plan) - Provide an API key for **Anthropic** (mandatory). You can optionally also provide an **OpenAI** API key.
+- **LLM Keys** (required unless you have a Bito Enterprise Plan) - Choose your LLM provider and provide its credentials. Supported providers: **Anthropic (Claude)**, **OpenAI (GPT)**, **Google Vertex AI**, **Azure AI**, **Novita**, **AWS Bedrock**, or **Portkey**.
 - **Generate a secure MCP access token?** - Type `y` to generate a secure access token (recommended)
 - **Configure SSO?** - Optionally enable Single Sign-On (SSO) authentication. Choose between **Bito authentication** (OAuth via your Bito workspace) or **Enterprise IdP** (SAML/OIDC via your corporate identity provider). See [SSO Authentication](#6-sso-authentication) for more details.
 

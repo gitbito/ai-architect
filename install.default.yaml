@@ -55,7 +55,7 @@ git:
 # OPTIONAL: Custom LLM provider keys
 # Resolution order: Bito API key -> env file -> prompt.
 # Leave commented to use Bito's LLM (when available) or be prompted at install.
-# Supported providers: Anthropic, OpenAI, Portkey, Google Vertex AI, Azure AI.
+# Supported providers: Anthropic, OpenAI, Portkey, Google Vertex AI, Azure AI, Novita, AWS Bedrock.
 # llm:
 #   # Anthropic
 #   anthropic_api_token: ""
@@ -68,14 +68,22 @@ git:
 #   portkey_api_url: ""                       # optional; defaults to https://api.portkey.ai/v1
 #   portkey_model_name: ""                    # required when portkey_api_token is set (format: @provider/model)
 #
-#   # Google Vertex AI (service-account mode; all 3 required)
-#   vertex_service_account_key_json: ""       # base64-encoded service-account JSON, single line (e.g. base64 < sa.json | tr -d '\n')
+#   # Google Vertex AI (service-account mode; key + project + region required)
+#   vertex_service_account_key_json: ""       # absolute path to your GCP service-account JSON file (auto base64-encoded)
 #   vertex_project: ""                        # GCP project ID
-#   vertex_region: ""                         # e.g. us-central1
+#   vertex_region: ""                         # e.g. us-east5 (region must serve your model)
 #
 #   # Azure AI (both required)
 #   azure_ai_api_key: ""
 #   azure_ai_endpoint: ""                     # e.g. https://<resource>.openai.azure.com
+#
+#   # Novita
+#   novita_api_token: ""
+#
+#   # AWS Bedrock (all 3 required)
+#   aws_access_key_id: ""
+#   aws_secret_access_key: ""
+#   aws_bedrock_region: ""                    # e.g. us-east-1
 
 # Resource defaults (tune per-host as needed)
 resources:
