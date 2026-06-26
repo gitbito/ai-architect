@@ -16,8 +16,9 @@
 # LOCATION
 #   This file lives at $HOME/.bitoarch/install.yaml.
 #   Create it before running the install bootstrap if you know the schema
-#   (non-interactive install). If absent, the installer creates it from your
-#   prompt answers so subsequent installs are non-interactive.
+#   (non-interactive install). If absent, the installer seeds a blank template
+#   here. This file is operator-owned: the installer reads it but never writes
+#   back to it, so your values, comments and formatting are preserved as-is.
 #
 # LIFECYCLE
 #   bitoarch restart --force   Re-reads this file and refreshes .env-bitoarch
@@ -37,7 +38,7 @@
 bito_api_key: ""
 
 # OPTIONAL: Email used to register the local MCP with installed coding agents.
-# Leave blank to be prompted on Standalone install; ignored otherwise.
+# Leave blank to be prompted at install time; ignored if unused.
 user_email: ""
 
 git:
@@ -72,6 +73,7 @@ git:
 #   vertex_service_account_key_json: ""       # absolute path to your GCP service-account JSON file (auto base64-encoded)
 #   vertex_project: ""                        # GCP project ID
 #   vertex_region: ""                         # e.g. us-east5 (region must serve your model)
+#   vertex_model: ""                          # optional; leave blank to use the workspace default model
 #
 #   # Azure AI (both required)
 #   azure_ai_api_key: ""
