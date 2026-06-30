@@ -125,7 +125,7 @@ You can choose to deploy and manage AI Architect in your own infrastructure with
 >
 > Teams of up to five members can use AI Architect for free with their preferred coding agents by using their own LLM API keys. Larger teams require **[Bito Enterprise Plan](https://bito.ai/pricing/)**, which includes bundled LLM tokens. Further, if you want to power Bito Code Review Agent with AI Architect, you will need Bito Enterprise Plan regardless of the size of the team.
 >
-> An LLM API key is required. AI Architect supports **Anthropic (Claude)**, **OpenAI (GPT)**, **Google Vertex AI**, **Azure AI**, **Novita**, **AWS Bedrock**, and **Portkey** — configure any one as your provider.
+> An LLM API key is required. AI Architect supports **Anthropic (Claude)**, **OpenAI (GPT)**, **Google Vertex AI**, **Google Gemini**, **Azure AI**, **Novita**, **AWS Bedrock**, and **Portkey** — configure any one as your provider.
 >
 > With an Anthropic API key, indexing costs are typically **$1.00–$1.50 per MB** of indexable code (source files only; binaries, archives, and images are skipped).
 
@@ -213,7 +213,8 @@ Required for self-managed AI Architect deployments. You configure **one** LLM pr
 
 - **Anthropic (Claude)** — Anthropic API key
 - **OpenAI (GPT)** — OpenAI API key
-- **Google Vertex AI** — GCP service-account key JSON (with Vertex AI access), GCP project ID, and region (all three required); supported models: `claude-haiku-4-5@20251001` (default), `gemini-2.5-flash-lite`, and `gemini-3.1-pro-preview`
+- **Google Vertex AI** — GCP service-account key JSON (with Vertex AI access), GCP project ID, and region (all three required); supported models: `claude-haiku-4-5@20251001` (default), `gemini-2.5-flash-lite`, `gemini-3-flash-preview` and `gemini-3.1-pro-preview`
+- **Google Gemini** — Gemini API key (required); optionally specify a model, e.g. `gemini-3-flash-preview` (leave blank to use the default model)
 - **Azure AI** — Azure AI API key and endpoint URL, e.g. `https://<resource>.openai.azure.com` (both required)
 - **Novita** — Novita API token
 - **AWS Bedrock** — AWS access key ID, secret access key, and region (all three required)
@@ -269,7 +270,7 @@ The setup script will guide you through configuring AI Architect with your Git p
 - **Git provider** (required) - Choose your Git provider (GitHub, GitLab, BitBucket or Azure DevOps)
 - **Git Access Token** (required) - Personal access token for your Git provider
 - **Enterprise Git provider domain URL** - Provide your custom domain URL if you are using enterprise/self-hosted version of Git provider (e.g., https://github.company.com).
-- **LLM Keys** (required unless you have a Bito Enterprise Plan) - Choose your LLM provider and provide its credentials. Supported providers: **Anthropic (Claude)**, **OpenAI (GPT)**, **Google Vertex AI**, **Azure AI**, **Novita**, **AWS Bedrock**, or **Portkey**.
+- **LLM Keys** (required unless you have a Bito Enterprise Plan) - Choose your LLM provider and provide its credentials. Supported providers: **Anthropic (Claude)**, **OpenAI (GPT)**, **Google Vertex AI**, **Google Gemini**, **Azure AI**, **Novita**, **AWS Bedrock**, or **Portkey**.
 - **Generate a secure MCP access token?** - Type `y` to generate a secure access token (recommended)
 - **Configure SSO?** - Optionally enable Single Sign-On (SSO) authentication. Choose between **Bito authentication** (OAuth via your Bito workspace) or **Enterprise IdP** (SAML/OIDC via your corporate identity provider). See [SSO Authentication](#6-sso-authentication) for more details.
 
