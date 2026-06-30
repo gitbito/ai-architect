@@ -214,7 +214,7 @@ Required for self-managed AI Architect deployments. You configure **one** LLM pr
 - **Anthropic (Claude)** — Anthropic API key
 - **OpenAI (GPT)** — OpenAI API key
 - **Google Vertex AI** — GCP service-account key JSON (with Vertex AI access), GCP project ID, and region (all three required); supported models: `claude-haiku-4-5@20251001` (default), `gemini-2.5-flash-lite`, `gemini-3-flash-preview` and `gemini-3.1-pro-preview`
-- **Google Gemini** — Gemini API key (required); optionally specify a model, e.g. `gemini-3-flash-preview` (leave blank to use the default model)
+- **Google Gemini** — Gemini API key (required); supported models: `gemini-2.5-flash-lite`, `gemini-3-flash-preview` and `gemini-3.1-pro-preview` (leave blank to use the default model)
 - **Azure AI** — Azure AI API key and endpoint URL, e.g. `https://<resource>.openai.azure.com` (both required)
 - **Novita** — Novita API token
 - **AWS Bedrock** — AWS access key ID, secret access key, and region (all three required)
