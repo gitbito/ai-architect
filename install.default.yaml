@@ -89,7 +89,7 @@ git:
 #
 #   # Google Gemini
 #   gemini_api_key: ""
-#   gemini_model: ""                          # optional; leave blank to use the workspace default model
+#   gemini_model: ""                          # optional; leave blank to use the default model
 
 # Resource defaults (tune per-host as needed)
 resources:
