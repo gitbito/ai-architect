@@ -125,9 +125,7 @@ You can choose to deploy and manage AI Architect in your own infrastructure with
 >
 > Teams of up to five members can use AI Architect for free with their preferred coding agents by using their own LLM API keys. Larger teams require **[Bito Enterprise Plan](https://bito.ai/pricing/)**, which includes bundled LLM tokens. Further, if you want to power Bito Code Review Agent with AI Architect, you will need Bito Enterprise Plan regardless of the size of the team.
 >
-> An LLM API key is required. AI Architect supports **Anthropic (Claude)**, **OpenAI (GPT)**, **Google Vertex AI**, **Google Gemini**, **Azure AI**, **Novita**, **AWS Bedrock**, and **Portkey** — configure any one as your provider.
->
-> With an Anthropic API key, indexing costs are typically **$1.00–$1.50 per MB** of indexable code (source files only; binaries, archives, and images are skipped).
+> An LLM API key is required. AI Architect supports **Anthropic (Claude)**, **OpenAI (GPT)**, **Google Vertex AI**, **Google Gemini**, **Azure AI**, **Novita**, **AWS Bedrock**, **Portkey**, and **Local OpenAI-compatible** (bring your own server) — configure any one as your provider.
 
 Please contact us at [support@bito.ai](mailto:support@bito.ai) for a **free Enterprise trial** for your on-prem deployment, to subscribe to a paid plan, or to have Bito manage the AI Architect.
 
@@ -197,7 +195,7 @@ AI Architect supports two deployment modes. Choose the option that fits your inf
 
 You'll need a **Bito account** and a **Bito Access Key** to authenticate AI Architect. You can sign up for a Bito account at https://alpha.bito.ai, and create an access key from Settings -> Advanced Settings **[Link](https://alpha.bito.ai/home/advanced)**.
 
-### **Git Access Token**
+### **Git Credentials**
 
 Required for AI Architect to read and index your repositories. Bito supports **GitHub**, **GitLab**, **Bitbucket**, and **Azure DevOps**.
 - **GitHub classic Token with `repo` access**  Fine-grained tokens are not supported. [Learn more](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic)
@@ -207,7 +205,7 @@ Required for AI Architect to read and index your repositories. Bito supports **G
     - For **Bitbucket Enterprise (Self-Hosted)** use **HTTP Access Token**. [Learn more](https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html)
 - **Azure DevOps (cloud) Personal Access Token with `Full access`** The token must be created for the Azure DevOps organization whose repositories you want to index. [Learn more](https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=Windows)
 
-### **LLM API Keys**
+### **LLM Config**
 
 Required for self-managed AI Architect deployments. You configure **one** LLM provider of your choice. AI Architect supports the following providers:
 
@@ -219,6 +217,7 @@ Required for self-managed AI Architect deployments. You configure **one** LLM pr
 - **Novita** — Novita API token
 - **AWS Bedrock** — AWS access key ID, secret access key, and region (all three required)
 - **[Portkey](https://portkey.ai)** — gateway/proxy integration for custom configurations
+- **Local OpenAI-compatible** — your own OpenAI `/v1` server (vLLM, Ollama, LM Studio, LocalAI, TGI, llama.cpp), so inference stays in your network. Needs the base URL **including `/v1`** (e.g. `https://llm.internal:8000/v1`) and a model your server serves — we recommend **`claude-haiku-4.5`**. API token optional (Bearer; blank for keyless). The URL must be reachable from the containers: for a server on the same host use `http://ai-architect-local:<port>/v1` (**not** `localhost`/`127.0.0.1`/`0.0.0.0`), otherwise a private-network/VPN-resolvable hostname.
 
 To use Bito-hosted LLM instead (no LLM keys required from you), contact **[support@bito.ai](mailto:support@bito.ai)** about the [Bito Enterprise Plan](https://bito.ai/pricing/).
 
@@ -270,7 +269,7 @@ The setup script will guide you through configuring AI Architect with your Git p
 - **Git provider** (required) - Choose your Git provider (GitHub, GitLab, BitBucket or Azure DevOps)
 - **Git Access Token** (required) - Personal access token for your Git provider
 - **Enterprise Git provider domain URL** - Provide your custom domain URL if you are using enterprise/self-hosted version of Git provider (e.g., https://github.company.com).
-- **LLM Keys** (required unless you have a Bito Enterprise Plan) - Choose your LLM provider and provide its credentials. Supported providers: **Anthropic (Claude)**, **OpenAI (GPT)**, **Google Vertex AI**, **Google Gemini**, **Azure AI**, **Novita**, **AWS Bedrock**, or **Portkey**.
+- **LLM Keys** (required unless you have a Bito Enterprise Plan) - Choose your LLM provider and provide its credentials. Supported providers: **Anthropic (Claude)**, **OpenAI (GPT)**, **Google Vertex AI**, **Google Gemini**, **Azure AI**, **Novita**, **AWS Bedrock**, **Portkey**, or **Local OpenAI-compatible** (your own OpenAI `/v1` server).
 - **Generate a secure MCP access token?** - Type `y` to generate a secure access token (recommended)
 - **Configure SSO?** - Optionally enable Single Sign-On (SSO) authentication. Choose between **Bito authentication** (OAuth via your Bito workspace) or **Enterprise IdP** (SAML/OIDC via your corporate identity provider). See [SSO Authentication](#6-sso-authentication) for more details.
 
