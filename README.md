@@ -205,7 +205,7 @@ Required for AI Architect to read and index your repositories. Bito supports **G
     - For **Bitbucket Enterprise (Self-Hosted)** use **HTTP Access Token**. [Learn more](https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html)
 - **Azure DevOps (cloud) Personal Access Token with `Full access`** The token must be created for the Azure DevOps organization whose repositories you want to index. [Learn more](https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=Windows)
 
-### **LLM Config**
+### **LLM Configuration**
 
 Required for self-managed AI Architect deployments. You configure **one** LLM provider of your choice. AI Architect supports the following providers:
 
