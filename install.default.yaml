@@ -11,9 +11,7 @@
 # @website https://bito.ai
 # ============================================================================
 # Bito AI Architect -- Install Configuration
-# Fill in the REQUIRED values below and save. The installer uses these values
-# and prompts only for anything left blank -- whether you edit this file before
-# running the install bootstrap, or in the editor the installer opens for you.
+# Edit the REQUIRED values below, then run the install bootstrap.
 # ============================================================================
 # LOCATION
 #   This file lives at $HOME/.bitoarch/install.yaml.
@@ -91,12 +89,14 @@ git:
 #
 #   # Google Gemini
 #   gemini_api_key: ""
-#   gemini_model: ""                          # optional; leave blank to use the workspace default model
+#   gemini_model: ""                          # optional; leave blank to use the default model
 #
-#   # Local OpenAI-compatible (Copilot Bridge)
-#   localopenai_base_url: ""                  # required; reachable from the deployment, include /v1 path (e.g. https://llm.internal:8000/v1). A server on this machine: http://ai-architect-local:<port>/v1 (not localhost/127.0.0.1/0.0.0.0)
-#   localopenai_api_key: ""                   # optional; leave blank for keyless servers
-#   localopenai_model: ""                     # required; must match a model your server serves, e.g. claude-haiku-4.5
+#   # Local OpenAI-compatible — your own server exposing the OpenAI /v1 API
+#   # (vLLM, Ollama, LM Studio, LocalAI, Text Generation Inference, llama.cpp).
+#   # At setup the installer verifies the server with GET <base_url>/models.
+#   localopenai_base_url: ""                  # required; must be reachable from the deployment's containers and include the /v1 path (e.g. https://llm.internal:8000/v1). Server on THIS machine: http://ai-architect-local:<port>/v1 (a host alias — not localhost/127.0.0.1/0.0.0.0, which resolve to the container). URL must start with http:// or https://
+#   localopenai_api_key: ""                   # optional; leave blank for keyless servers; sent as a Bearer token when set
+#   localopenai_model: ""                     # required; must exactly match a model ID your server serves. Recommended: claude-haiku-4.5 (works best with AI Architect)
 #   localopenai_connector_type: ""            # optional; set "copilot-bridge" if using Copilot Bridge, else leave blank
 
 # Resource defaults (tune per-host as needed)
