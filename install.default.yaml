@@ -41,6 +41,16 @@ bito_api_key: ""
 # Leave blank to be prompted at install time; ignored if unused.
 user_email: ""
 
+# OPTIONAL: Deployment method for a FRESH install: docker | kubernetes
+# Skips the interactive "Deployment Method" prompt. Ignored once a deployment
+# exists (the installed method stays authoritative; this key cannot migrate a
+# live install between docker and kubernetes).
+# deployment:
+#   method: docker
+#   ingress:                # kubernetes only
+#     class: ""             # empty = bundled controller (ai-architect-nginx); set to reuse yours (nginx, traefik, ...)
+#     exposure: ""          # empty = auto (kind: hostport, else nodeport) | hostport | nodeport | loadbalancer
+
 git:
   # REQUIRED: github | gitlab | bitbucket | azure-devops  (leave empty to be prompted)
   provider: ""
@@ -113,18 +123,26 @@ resources:
 #   mysql: 5004
 #   cis_tracker: 5005
 
+# ============================================================================
+# JIRA CONNECTION (shared — used by both Insights and the Jira plugin)
+# ============================================================================
+# Fill the Jira connection once; the ticket-tracker Insights feature and the
+# Jira (task-analyzer) plugin both read it.
+jira:
+  domain: ""                                # e.g. https://acme.atlassian.net
+  email: ""
+  api_token: ""                             # Atlassian → security → API tokens
+  host_type: cloud                          # cloud | self
+  cloud_id: ""                              # optional; only some Cloud OAuth setups need it
+
 # OPTIONAL: Insights features. Run independently; both work better together.
 # Set "true" to enable a feature; leave empty to be prompted during install.
 insights:
   git: ""                                   # set to true to enable commit-history insights (reuses git creds above)
 
   ticket_tracker:
-    enabled: ""                             # set to true to enable Jira ticket insights
+    enabled: ""                             # set to true to enable Jira ticket insights (uses the Jira connection above)
     provider: jira                          # jira (only supported provider today)
-    base_url: ""                            # e.g. https://acme.atlassian.net
-    email: ""
-    api_token: ""                           # Atlassian → security → API tokens
-    host_type: cloud                        # cloud | self
     project_keys: ""                        # comma-separated string ONLY (e.g. "PROJ,INFRA") — YAML list will fail
 
   docs:
@@ -136,3 +154,66 @@ insights:
 
   git_lookback_days: ""                      # git insights lookback (days, default: 180, max: 730)
   jira_lookback_days: ""                     # jira insights lookback (days, default: 180, max: 730)
+
+# ============================================================================
+# OPTIONAL: Plugins — bundled integrations, installed once the base is healthy
+# ============================================================================
+# Leave this whole block commented to be OFFERED the plugins interactively at
+# the end of a base install (terminal only). To install non-interactively, do
+# the plugin's manual setup below first, then uncomment the `plugins:` list.
+#
+# Every plugin needs:
+#   - PUBLIC_URL — public HTTPS address of THIS server, reachable from Slack/Jira.
+#     Your nginx / load balancer must forward it to the AI Architect ingress on
+#     port 5080 (the INGRESS_PORT default; override with INGRESS_PORT). No trailing slash. Required per plugin.
+#   - Bito API key + MCP token/URL are inherited from the base config — don't repeat.
+#   - Auto-generated secrets (encryption/state keys) are not listed here.
+#
+# --------------------------------------------------------------------------
+#  ai-assistant — Bito in Slack
+# --------------------------------------------------------------------------
+# Create the Slack app FIRST (preseed can't open api.slack.com for you):
+#   1. Get the manifest:
+#        https://github.com/gitbito/ai-architect/blob/main/slack-app-manifest.default.yaml
+#   2. Replace every YOUR_PUBLIC_URL in it with your PUBLIC_URL
+#        (e.g. https://ai.acme.com — no trailing slash).
+#   3. https://api.slack.com/apps -> "Create New App" -> "From an app manifest"
+#        -> pick your workspace -> paste the edited manifest -> Create.
+#   4. Copy "Basic Information" -> "App Credentials" into the SLACK_* properties below.
+#
+#   AFTER the plugin services are running (mandatory):
+#   5. Install to workspace: open  https://YOUR_PUBLIC_URL/slack/install  -> "Allow".
+#   6. Add Bito to a channel: in the channel type  /invite @Bito ; if prompted
+#        choose "Add apps to this channel" -> "Bito" -> "Add".
+#
+# --------------------------------------------------------------------------
+#  task-analyzer — Bito in Jira
+# --------------------------------------------------------------------------
+# The Jira connection (base URL, email, API token) is reused from
+# insights.ticket_tracker above — no need to repeat it. Respond mode and
+# project scope can be preseeded below, or set later via:
+#   bitoarch plugin config task-analyzer
+#
+#   AFTER the plugin services are running (mandatory):
+#   - Jira Cloud — register the webhook manually:
+#       1. Jira -> Settings -> System -> WebHooks -> Create a WebHook
+#       2. Name: "Bito AI Architect"
+#       3. URL: get it from  bitoarch plugin status task-analyzer  (Webhook line)
+#       4. Events: Issue created/updated/deleted, Comment created/updated/deleted
+#       5. Save
+#   - Jira Self-Hosted — webhook auto-registers; no manual step needed.
+#
+# --------------------------------------------------------------------------
+# Uncomment and fill to preseed (single `plugins:` list; either entry optional):
+# plugins:
+#   - source: ai-assistant
+#     config:
+#       PUBLIC_URL: "https://your-public-host"
+#       SLACK_CLIENT_ID: ""            # Basic Information -> App Credentials -> Client ID
+#       SLACK_CLIENT_SECRET: ""        # Basic Information -> App Credentials -> Client Secret
+#       SLACK_SIGNING_SECRET: ""       # Basic Information -> App Credentials -> Signing Secret
+#   - source: task-analyzer
+#     config:
+#       PUBLIC_URL: "https://your-public-host"
+#       JIRA_AUTO_ANALYSIS_ENABLED: "false"    # respond mode — "false": analyze when a comment mentions @bito or /bito (on-demand); "true": every new/updated ticket
+#       TASK_ANALYZER_WEBHOOK_ENABLED_PROJECTS: ""      # Jira project keys to watch, comma-separated (e.g. "PROJ,OPS"); leave out or empty = all projects

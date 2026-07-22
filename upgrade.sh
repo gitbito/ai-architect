@@ -892,6 +892,46 @@ migrate_config() {
         log_silent "Migrated INSIGHTS_LOOKBACK_DAYS to per-feature keys"
     fi
 
+    # Plugin framework GA (1.10.0): the Jira connection moved from Insights-only keys
+    # (INSIGHTS_TICKET_TRACKER_BASE_URL/EMAIL/API_TOKEN/HOST_TYPE) to the shared JIRA_*
+    # keys that BOTH Insights and the Jira plugin (task-analyzer) consume. Carry an
+    # existing pre-1.10.0 Insights Jira connection into JIRA_* so a plugin install after
+    # the upgrade finds the connection already in place. Self-gating: runs only when a
+    # shared key is empty AND the old key holds a value -> no-op on a fresh 1.10.0 install
+    # or a 1.10+ -> newer upgrade. Insights reads the shared JIRA_* creds, so the migrated
+    # cred keys (BASE_URL/EMAIL/API_TOKEN/HOST_TYPE) are removed once carried over; the
+    # non-cred config keys (ENABLED/PROVIDER/PROJECT_KEYS/AUTH_TYPE/DOMAIN_URL) stay.
+    if [[ -f "$NEW_ENV" ]]; then
+        local _tt_base _cur_jira
+        _tt_base=$(grep -m1 '^INSIGHTS_TICKET_TRACKER_BASE_URL=' "$NEW_ENV" | cut -d= -f2- | tr -d '"' | tr -d "'")
+        _cur_jira=$(grep -m1 '^JIRA_DOMAIN=' "$NEW_ENV" | cut -d= -f2- | tr -d '"' | tr -d "'")
+        if [ -n "$_tt_base" ] && [ -z "$_cur_jira" ]; then
+            local _tt_email _tt_token _tt_host _tt_self
+            _tt_email=$(grep -m1 '^INSIGHTS_TICKET_TRACKER_EMAIL=' "$NEW_ENV" | cut -d= -f2- | tr -d '"' | tr -d "'")
+            _tt_token=$(grep -m1 '^INSIGHTS_TICKET_TRACKER_API_TOKEN=' "$NEW_ENV" | cut -d= -f2- | tr -d '"' | tr -d "'")
+            _tt_host=$(grep -m1 '^INSIGHTS_TICKET_TRACKER_HOST_TYPE=' "$NEW_ENV" | cut -d= -f2- | tr -d '"' | tr -d "'")
+            [ -n "$_tt_host" ] || _tt_host="cloud"
+            _tt_self=false; [ "$_tt_host" = "self" ] && _tt_self=true
+            # Set-or-append each shared key (merge added them empty; append is a safety net).
+            _jira_mig_set() {
+                local k="$1" v ev; v="$2"
+                ev=$(printf '%s' "$v" | sed 's/[\\|&]/\\&/g')   # escape sed replacement metachars
+                if grep -q "^${k}=" "$NEW_ENV"; then sed -i.bak "s|^${k}=.*|${k}=${ev}|" "$NEW_ENV"
+                else printf '%s=%s\n' "$k" "$v" >> "$NEW_ENV"; fi
+            }
+            _jira_mig_set JIRA_DOMAIN        "$_tt_base"
+            _jira_mig_set JIRA_EMAIL         "$_tt_email"
+            _jira_mig_set JIRA_API_TOKEN     "$_tt_token"
+            _jira_mig_set JIRA_HOST_TYPE     "$_tt_host"
+            _jira_mig_set JIRA_IS_SELF_HOSTED "$_tt_self"
+            rm -f "${NEW_ENV}.bak"
+            # Drop the migrated cred keys (insights reads the shared JIRA_* set). Non-cred
+            # config keys (ENABLED/PROVIDER/PROJECT_KEYS/AUTH_TYPE/DOMAIN_URL) are kept.
+            sed -i.bak -e '/^INSIGHTS_TICKET_TRACKER_BASE_URL=/d' -e '/^INSIGHTS_TICKET_TRACKER_EMAIL=/d' -e '/^INSIGHTS_TICKET_TRACKER_API_TOKEN=/d' -e '/^INSIGHTS_TICKET_TRACKER_HOST_TYPE=/d' "$NEW_ENV" && rm -f "${NEW_ENV}.bak"
+            log_silent "Migrated Insights Jira connection to shared JIRA_* keys (upgrade from ${CURRENT_VERSION:-pre-1.10.0}); plugins will find it in place"
+        fi
+    fi
+
     # Replace TEMPORAL_MYSQL_PASSWORD placeholder with a real random secret.
     # The default template ships CHANGE_THIS_PASSWORD so every install would
     # otherwise end up with the same well-known password for temporal_user.
@@ -1041,6 +1081,7 @@ configure_volumes() {
     ' "$compose_file" > "${compose_file}.tmp"
 
     if [[ -n "$old_volumes_project" ]]; then
+        # Core volumes are created together at install and always co-exist -> external.
         cat >> "${compose_file}.tmp" << EOF
 
 volumes:
@@ -1056,26 +1097,31 @@ volumes:
   ai_architect_temp:
     external: true
     name: ${old_volumes_project}_ai_architect_temp
-  ai_architect_insights:
 EOF
-        # ai_architect_insights only exists in installs from 1.8.4+, but
-        # check_old_volumes keys off the four core volumes — so old_volumes_project
-        # can be set while the insights volume does not exist (upgrade from an
-        # older release). Declaring a missing volume external hard-fails
+        # wingman (added 1.10.0) and insights (added 1.8.4) arrived in later
+        # releases, so an older old-project may not have them — check_old_volumes
+        # keys off the four core volumes, so old_volumes_project can be set while
+        # these do not exist. Declaring a missing volume external hard-fails
         # compose-up ("declared as external, but could not be found"), so mount
-        # it external only when present, else local so compose creates a fresh one.
-        if docker volume inspect "${old_volumes_project}_ai_architect_insights" >/dev/null 2>&1; then
-            cat >> "${compose_file}.tmp" << EOF
+        # each external only when present, else local so compose creates a fresh
+        # one. wingman is a re-populatable CDN cache; a fresh one is refilled by
+        # the populate step, so it is safe to start local.
+        for _newvol in ai_architect_wingman ai_architect_insights; do
+            if docker volume inspect "${old_volumes_project}_${_newvol}" >/dev/null 2>&1; then
+                cat >> "${compose_file}.tmp" << EOF
+  ${_newvol}:
     external: true
-    name: ${old_volumes_project}_ai_architect_insights
+    name: ${old_volumes_project}_${_newvol}
 EOF
-            log_silent "Insights volume: reusing ${old_volumes_project}_ai_architect_insights"
-        else
-            cat >> "${compose_file}.tmp" << 'EOF'
+                log_silent "${_newvol}: reusing ${old_volumes_project}_${_newvol}"
+            else
+                cat >> "${compose_file}.tmp" << EOF
+  ${_newvol}:
     driver: local
 EOF
-            log_silent "Insights volume: fresh (no prior volume for old project)"
-        fi
+                log_silent "${_newvol}: fresh (no prior volume for old project)"
+            fi
+        done
         log_silent "Volume config: external (from $old_volumes_project)"
     else
         cat >> "${compose_file}.tmp" << 'EOF'
@@ -1084,6 +1130,8 @@ volumes:
   ai_architect_mysql_data:
     driver: local
   ai_architect_data:
+    driver: local
+  ai_architect_wingman:
     driver: local
   ai_architect_backups:
     driver: local
@@ -1211,6 +1259,45 @@ run_post_install_hooks() {
         command -v autostart_install     >/dev/null 2>&1 && autostart_install     >> "$LOG_FILE" 2>&1 || true
         command -v cert_cron_install     >/dev/null 2>&1 && cert_cron_install     >> "$LOG_FILE" 2>&1 || true
 
+        # Match a fresh install's ownership: the whole prefix (etc/var/lib) is
+        # user-owned so the CLI and plugin install run rootless. An upgrade from a
+        # pre-plugin release can leave BITOARCH_LIB_DIR root-owned (nothing wrote
+        # under lib/ before the plugin framework existed); reclaim it before the
+        # plugin fan-out below (sudo only when actually needed).
+        if type ensure_writable_dir >/dev/null 2>&1; then
+            ensure_writable_dir "$(get_lib_dir)" >> "$LOG_FILE" 2>&1 || true
+        fi
+
+        # The shared Wingman shelf is refreshed on upgrade by the chart-owned populate
+        # Job (k8s), which re-runs on the helm upgrade below (pull-if-newer), and by the
+        # compose one-shot on docker (ordered before base services) -- no CLI populate here.
+
+        # Repopulate installed plugins' config from ~/.bitoarch/install.yaml (same source
+        # restart --force and a fresh install apply), THEN upgrade every installed plugin
+        # to its latest CDN version — same flow as `bitoarch plugin upgrade <name>`, fanned
+        # out generically over all installed plugins. Best-effort: CDN-unreachable,
+        # already-latest, or a held/unhealthy plugin never fails the base upgrade (each
+        # plugin_upgrade is health-gated with built-in rollback). Runtime-agnostic
+        # (docker + k8s) via the shared _plugin_deploy path.
+        . "${NEW_DIR}/scripts/lib/plugin/preseed.sh" 2>/dev/null || true
+        type plugin_preseed_reapply_config >/dev/null 2>&1 && \
+            plugin_preseed_reapply_config >> "$LOG_FILE" 2>&1 || true
+        . "${NEW_DIR}/scripts/lib/plugin/lifecycle.sh" 2>/dev/null || true
+        type plugin_lifecycle_upgrade_all >/dev/null 2>&1 && \
+            plugin_lifecycle_upgrade_all >> "$LOG_FILE" 2>&1 || true
+
+        # Reconcile the plugin auto-update scheduler against the just-installed
+        # version: the daily job's entrypoint lives under this NEW_DIR, so a job
+        # registered by an earlier version points at a now-stale dir. Re-syncing
+        # here re-points it at the current version and refreshes a changed
+        # definition (rename, cadence). Self-guards: no-op when no plugins are
+        # installed or auto-update is off (needs the journal for the has-plugins
+        # check + the scheduler lib).
+        . "${NEW_DIR}/scripts/lib/plugin/state-journal.sh"    2>/dev/null || true
+        . "${NEW_DIR}/scripts/lib/scheduler.sh" 2>/dev/null || true
+        type scheduler_sync >/dev/null 2>&1 && \
+            scheduler_sync >> "$LOG_FILE" 2>&1 || true
+
         command -v _install_persist_mode_flags >/dev/null 2>&1 && \
             _install_persist_mode_flags
     )
@@ -1250,7 +1337,7 @@ start_new_version() {
     if ! run_with_spinner "AI Architect Deployment In Progress" \
             _deploy_and_wait_healthy "${standard_config_dir}/.env-bitoarch"; then
         msg_error "Failed to start new version"
-        msg_info "Check log file: $LOG_FILE"
+        echo -e "${BLUE}ℹ${NC} Check log file: $LOG_FILE"   # console-only: don't tee this pointer into setup.log itself
         exit 1
     fi
     log_silent "New version started"
@@ -1268,7 +1355,7 @@ start_new_version_standalone() {
     if ! run_with_spinner "AI Architect Deployment In Progress" \
             _deploy_and_wait_healthy "$ENV_FILE"; then
         msg_error "Failed to start new version"
-        msg_info "Check log file: $LOG_FILE"
+        echo -e "${BLUE}ℹ${NC} Check log file: $LOG_FILE"   # console-only: don't tee this pointer into setup.log itself
         exit 1
     fi
     log_silent "New version started"
@@ -1364,10 +1451,24 @@ stop_old_version_standalone() {
     fi
 }
 
+# A failed helm --wait usually means an unpullable image (tag not on the
+# registry yet, rate limit, wrong registry). Print the exact pod -> image ->
+# reason lines so the operator doesn't have to dig through kubectl describe.
+report_stuck_image_pulls() {   # <namespace>  -> emits "pod: image (reason)" lines, or nothing
+    local ns="$1"
+    command -v jq >/dev/null 2>&1 || return 0
+    kubectl get pods -n "$ns" -o json 2>/dev/null | jq -r '
+        .items[]
+        | .metadata.name as $pod
+        | ((.status.containerStatuses // []) + (.status.initContainerStatuses // []))[]
+        | select((.state.waiting.reason // "") | IN("ImagePullBackOff", "ErrImagePull", "InvalidImageName"))
+        | "\($pod): cannot pull \(.image) (\(.state.waiting.reason))"' 2>/dev/null
+}
+
 # Kubernetes upgrade functions
 upgrade_kubernetes() {
     msg_info "Starting Kubernetes upgrade..."
-    
+
     local namespace="bito-ai-architect"
     
     # Check if Helm release exists
@@ -1449,9 +1550,10 @@ upgrade_kubernetes() {
     source "${NEW_DIR}/scripts/values-generator.sh"
 
     # Execute values-generator function with Always pull policy for upgrades
-    if ! generate_k8s_values_from_env "Always" 2>&1 | tee -a "$LOG_FILE"; then
+    # Scoped pipefail: without it the pipeline returns tee's rc and a generator failure is masked.
+    if ! (set -o pipefail; generate_k8s_values_from_env "Always" 2>&1 | tee -a "$LOG_FILE"); then
         msg_error "Failed to generate Helm values"
-        msg_error "Check log file for details: $LOG_FILE"
+        echo -e "${RED}✗${NC} Check log file for details: $LOG_FILE"   # console-only: don't tee this pointer into setup.log itself
         tail -20 "$LOG_FILE" | grep -i "error" || tail -20 "$LOG_FILE"
         exit 1
     fi
@@ -1506,7 +1608,16 @@ upgrade_kubernetes() {
         msg_success "All deployment rollouts completed"
     else
         msg_error "Helm upgrade failed"
-        msg_error "Check log file for details: $LOG_FILE"
+        local _stuck
+        _stuck="$(report_stuck_image_pulls "$namespace")"
+        if [ -n "$_stuck" ]; then
+            msg_error "Pods stuck pulling images:"
+            printf '%s\n' "$_stuck" | while IFS= read -r _l; do
+                echo -e "   ${RED}✗${NC} ${_l}" | tee -a "$LOG_FILE"
+            done
+            msg_info "Verify these tags exist on the registry (a release may still be publishing), then re-run the upgrade."
+        fi
+        echo -e "${RED}✗${NC} Check log file for details: $LOG_FILE"   # console-only: don't tee this pointer into setup.log itself
         echo ""
         tail -50 "$LOG_FILE"
         echo ""
@@ -1547,158 +1658,14 @@ upgrade_kubernetes() {
     fi
     echo ""
 
-    # Load environment variables from standard location for port configuration
-    # (configs were moved to standard location, not in NEW_DIR anymore)
+    # Load environment from the standard location for subsequent steps.
     set -a
     source "${standard_config_dir}/.env-bitoarch" 2>/dev/null || true
     set +a
 
-    # Setup port-forwards for immediate CLI access
-    # INLINE implementation to work regardless of kubernetes-manager.sh version in old installation
-    msg_info "Setting up port-forwards to new pods..."
-
-    # Kill any existing port-forwards
+    # Drop any stale port-forwards from the pre-upgrade pods; the upgraded CLI
+    # opens forwards on demand (per-service, localhost) when it next calls a service.
     pkill -f "kubectl.*port-forward.*${namespace}" 2>/dev/null || true
-    sleep 2
-
-    # Read port configuration
-    local provider_ext="${CIS_PROVIDER_EXTERNAL_PORT:-5001}"
-    local manager_ext="${CIS_MANAGER_EXTERNAL_PORT:-5002}"
-    local config_ext="${CIS_CONFIG_EXTERNAL_PORT:-5003}"
-    local mysql_ext="${MYSQL_EXTERNAL_PORT:-5004}"
-    local tracker_ext="${CIS_TRACKER_EXTERNAL_PORT:-5005}"
-    local temporal_ext="${TEMPORAL_EXTERNAL_PORT:-5006}"
-
-    local provider_int="${XMCP_HTTP_PORT:-8080}"
-    local manager_int="${CIS_MANAGER_PORT:-9090}"
-    local config_int="${CIS_CONFIG_PORT:-8081}"
-    local mysql_int="${MYSQL_PORT:-3306}"
-    local tracker_int="${CIS_TRACKING_PORT:-9920}"
-    local temporal_int="${TEMPORAL_PORT:-7233}"
-
-    # Launch port-forwards with proper daemonization
-    # Use: nohup + stdin from /dev/null + disown to fully detach from shell
-    nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-provider "${provider_ext}:${provider_int}" </dev/null >> "$LOG_FILE" 2>&1 &
-    disown 2>/dev/null || true
-    sleep 0.5
-
-    nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-manager "${manager_ext}:${manager_int}" </dev/null >> "$LOG_FILE" 2>&1 &
-    disown 2>/dev/null || true
-    sleep 0.5
-
-    nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-config "${config_ext}:${config_int}" </dev/null >> "$LOG_FILE" 2>&1 &
-    disown 2>/dev/null || true
-    sleep 0.5
-
-    nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-mysql "${mysql_ext}:${mysql_int}" </dev/null >> "$LOG_FILE" 2>&1 &
-    disown 2>/dev/null || true
-    sleep 0.5
-
-    nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-tracker "${tracker_ext}:${tracker_int}" </dev/null >> "$LOG_FILE" 2>&1 &
-    disown 2>/dev/null || true
-    sleep 0.5
-
-    nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-temporal "${temporal_ext}:${temporal_int}" </dev/null >> "$LOG_FILE" 2>&1 &
-    disown 2>/dev/null || true
-    sleep 2
-
-    # Verify and retry port-forwards with health check
-    local max_verify_attempts=3
-    local verify_attempt=1
-
-    while [ $verify_attempt -le $max_verify_attempts ]; do
-        local pf_count=$(ps aux | grep "kubectl port-forward" | grep -E "(-n |--namespace=|-n=)$namespace" | grep -v grep | wc -l | xargs)
-
-        if [ "$pf_count" -ge 6 ]; then
-            msg_success "Port-forwards established"
-            break
-        fi
-
-        # Retry progress: keep counts in log, not terminal.
-        log_silent "Only $pf_count/6 port-forwards running (attempt $verify_attempt)"
-
-        # Restart missing port-forwards
-        if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-provider" | grep -v grep >/dev/null 2>&1; then
-            log_silent "Restarting provider port-forward"
-            nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-provider "${provider_ext}:${provider_int}" </dev/null >> "$LOG_FILE" 2>&1 &
-            disown 2>/dev/null || true
-        fi
-
-        if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-manager" | grep -v grep >/dev/null 2>&1; then
-            log_silent "Restarting manager port-forward"
-            nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-manager "${manager_ext}:${manager_int}" </dev/null >> "$LOG_FILE" 2>&1 &
-            disown 2>/dev/null || true
-        fi
-
-        if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-config" | grep -v grep >/dev/null 2>&1; then
-            log_silent "Restarting config port-forward"
-            nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-config "${config_ext}:${config_int}" </dev/null >> "$LOG_FILE" 2>&1 &
-            disown 2>/dev/null || true
-        fi
-
-        if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-mysql" | grep -v grep >/dev/null 2>&1; then
-            log_silent "Restarting mysql port-forward"
-            nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-mysql "${mysql_ext}:${mysql_int}" </dev/null >> "$LOG_FILE" 2>&1 &
-            disown 2>/dev/null || true
-        fi
-
-        if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-tracker" | grep -v grep >/dev/null 2>&1; then
-            log_silent "Restarting tracker port-forward"
-            nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-tracker "${tracker_ext}:${tracker_int}" </dev/null >> "$LOG_FILE" 2>&1 &
-            disown 2>/dev/null || true
-        fi
-
-        if ! ps aux | grep "kubectl port-forward" | grep "ai-architect-temporal" | grep -v grep >/dev/null 2>&1; then
-            log_silent "Restarting temporal port-forward"
-            nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" svc/ai-architect-temporal "${temporal_ext}:${temporal_int}" </dev/null >> "$LOG_FILE" 2>&1 &
-            disown 2>/dev/null || true
-        fi
-
-        sleep 2
-        verify_attempt=$((verify_attempt + 1))
-    done
-
-    # Final connectivity check — and recreate any HTTP forward that doesn't
-    # answer (free the port + relaunch, mirroring restart_port_forward) instead
-    # of only warning. mysql/temporal aren't HTTP-probeable, so they're left
-    # best-effort. Inline (no sourcing) to work regardless of the old install's
-    # kubernetes-manager.sh version.
-    msg_info "Verifying port-forward connectivity..."
-    local unhealthy=() hc_spec hc_svc hc_ext hc_int hc_ok hc_attempt
-    # HTTP services to health-check + recreate (mysql/temporal aren't HTTP).
-    local hc_specs=(
-        "ai-architect-provider:${provider_ext}:${provider_int}"
-        "ai-architect-manager:${manager_ext}:${manager_int}"
-        "ai-architect-config:${config_ext}:${config_int}"
-        "ai-architect-tracker:${tracker_ext}:${tracker_int}"
-    )
-    for hc_spec in "${hc_specs[@]}"; do
-        IFS=: read -r hc_svc hc_ext hc_int <<< "$hc_spec"
-        hc_ok=false
-        for hc_attempt in 1 2 3; do
-            if curl -s --connect-timeout 2 "http://localhost:${hc_ext}/health" >/dev/null 2>&1; then
-                hc_ok=true; break
-            fi
-            log_silent "Port ${hc_ext} (${hc_svc}) not answering; recreating (attempt ${hc_attempt})"
-            pkill -9 -f "kubectl port-forward.*svc/${hc_svc} .*${hc_ext}:" 2>/dev/null || true
-            if command -v lsof >/dev/null 2>&1; then
-                local hc_holders; hc_holders=$(lsof -ti :"${hc_ext}" -sTCP:LISTEN 2>/dev/null)
-                [ -n "$hc_holders" ] && { echo "$hc_holders" | xargs kill -9 2>/dev/null || true; }
-            fi
-            sleep 1
-            nohup kubectl port-forward --address 0.0.0.0 -n "$namespace" "svc/${hc_svc}" "${hc_ext}:${hc_int}" </dev/null >> "$LOG_FILE" 2>&1 &
-            disown 2>/dev/null || true
-            sleep 1
-        done
-        [ "$hc_ok" = true ] || unhealthy+=("$hc_svc")
-    done
-
-    if [ ${#unhealthy[@]} -eq 0 ]; then
-        msg_success "All port-forwards healthy and responding"
-    else
-        msg_warn "Port-forwards still unreachable after retry: ${unhealthy[*]}"
-        msg_info "Recover with: bitoarch restart"
-    fi
 }
 
 # Check Kubernetes deployment status
@@ -1948,11 +1915,8 @@ _print_insights_announcement() {
     if _version_lt "${CURRENT_VERSION:-0.0.0}" "1.8.4"; then
         echo ""
         echo -e "  ${GREEN}──────────────────────────────────────────────────────${NC}"
-        echo -e "  ${GREEN}NEW:${NC} Insights — analyze Git history, tickets, and docs."
-        echo -e "  Get started:"
-        echo -e "    ${YELLOW}bitoarch insights enable git${NC}"
-        echo -e "    ${YELLOW}bitoarch insights enable ticket-tracker${NC}"
-        echo -e "    ${YELLOW}bitoarch insights run${NC}"
+        echo -e "  ${GREEN}NEW:${NC} Insights — enrich the knowledge graph with context from Git history, Jira, and Confluence."
+        echo -e "  Run ${YELLOW}bitoarch insights --help${NC} to get started."
         echo -e "  ${GREEN}──────────────────────────────────────────────────────${NC}"
         echo ""
     fi
@@ -2098,7 +2062,7 @@ main() {
         print_success
     fi
 
-    # Standalone auto-recovery hooks (BITO-13219). Each hook self-gates on
+    # Standalone auto-recovery hooks. Each hook self-gates on
     # its own flag (auto_recovery_enabled, MCP_TRANSPORT, etc.), so
     # Enterprise / K8s installs no-op the Standalone-only ones.
     run_post_install_hooks
