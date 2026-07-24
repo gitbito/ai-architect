@@ -54,7 +54,12 @@ user_email: ""
 git:
   # REQUIRED: github | gitlab | bitbucket | azure-devops  (leave empty to be prompted)
   provider: ""
-  # REQUIRED: personal access token
+  # OPTIONAL: github auth method -- personal_access_token (default) | app
+  # Leave empty for personal_access_token. Set to "app" for GitHub App auth
+  # (github only); then fill app_id / installation_id / private_key_path below.
+  # See docs/github-app-setup.md.
+  auth_type: ""
+  # REQUIRED for personal_access_token(PAT) auth.
   access_token: ""
   # OPTIONAL: enterprise git domain (empty for cloud).
   domain_url: ""
@@ -62,6 +67,13 @@ git:
   user: ""
   # REQUIRED for azure-devops cloud: your Azure DevOps organization (e.g. myorg)
   organization: ""
+  # --- GitHub App auth (only used when auth_type: app) --------------------
+  # REQUIRED for app: numeric GitHub App ID (App settings -> General -> App ID)
+  app_id: ""
+  # REQUIRED for app: installation ID (App -> Install App -> number in the URL)
+  installation_id: ""
+  # REQUIRED for app: absolute path to the App private-key .pem, auto base64-encoded
+  private_key_path: ""
 
 # OPTIONAL: Custom LLM provider keys
 # Resolution order: Bito API key -> env file -> prompt.
