@@ -120,6 +120,13 @@ git:
 #   localopenai_api_key: ""                   # optional; leave blank for keyless servers; sent as a Bearer token when set
 #   localopenai_model: ""                     # required; must exactly match a model ID your server serves. Recommended: claude-haiku-4.5 (works best with AI Architect)
 #   localopenai_connector_type: ""            # optional; set "copilot-bridge" if using Copilot Bridge, else leave blank
+#
+#   # Per-component default model overrides (optional). Each is applied to the
+#   # configured provider above; leave blank to use AI Architect's built-in
+#   # per-component defaults. Model IDs must match the configured provider's dialect.
+#   plugin_model: ""                          # model for the plugin use-case (task-analyser, ai-assistant)
+#   plugin_provider: ""                       # provider for the plugin usecase (e.g. anthropic); empty = priority-based default
+#   ai_index_model: ""                        # model for the AI Architect indexing usecase
 
 # Resource defaults (tune per-host as needed)
 resources:
