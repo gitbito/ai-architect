@@ -637,6 +637,30 @@ download_package() {
         exit 1
     fi
     
+    # SCRIPT_DIR is repointed at the new tree later in the upgrade, so resolve
+    # the helper from this script's own location instead.
+    local _va_lib="$(dirname "${BASH_SOURCE[0]}")/lib/verify-artifact.sh"
+    if [ -f "$_va_lib" ]; then
+        # shellcheck source=lib/verify-artifact.sh
+        source "$_va_lib"
+        if ! verify_artifact "$tarball_path" "$download_url" "version ${version}" >&2; then
+            rm -rf "$TEMP_DOWNLOAD_DIR"
+            exit 1
+        fi
+    else
+        # The verifier ships beside this script, so its absence means a damaged
+        # install. Record that the package went unverified -- and honour strict
+        # mode, whose parsing here mirrors _va_require_signed, which is
+        # unavailable for the same reason.
+        log_silent "artifact verifier not found at ${_va_lib}; version ${version} is not verified"
+        case "${BITOARCH_REQUIRE_SIGNED_ARTIFACTS:-0}" in
+            1|true|TRUE|yes|YES)
+                msg_error "signed artifacts are required; refusing version ${version}" >&2
+                rm -rf "$TEMP_DOWNLOAD_DIR"
+                exit 1 ;;
+        esac
+    fi
+
     local size_mb=$(du -m "$tarball_path" | cut -f1)
     msg_success "Package downloaded (${size_mb}MB)" >&2
     
@@ -1096,7 +1120,7 @@ migrate_config() {
                     # Create temp container and extract config
                     if docker create --name temp-provider-config-upgrade "$provider_image" >/dev/null 2>>"${LOG_FILE:-/dev/null}"; then
                         if docker cp temp-provider-config-upgrade:/opt/bito/xmcp/config/default.json "$docker_config_path" 2>> "${LOG_FILE:-/dev/null}"; then
-                            chmod 666 "$docker_config_path" 2>/dev/null || true
+                            chmod 0600 "$docker_config_path" 2>/dev/null || true
                             log_silent "Provider configuration extracted from new image"
                         else
                             msg_warn "Could not extract provider config from image, using packaged config"
@@ -1121,7 +1145,7 @@ migrate_config() {
                 if docker pull "$provider_image" >> "$LOG_FILE" 2>&1; then
                     if docker create --name temp-provider-config-k8s-upgrade "$provider_image" >/dev/null 2>>"${LOG_FILE:-/dev/null}"; then
                         if docker cp temp-provider-config-k8s-upgrade:/opt/bito/xmcp/config/default.json "$k8s_config_path" 2>> "${LOG_FILE:-/dev/null}"; then
-                            chmod 666 "$k8s_config_path" 2>/dev/null || true
+                            chmod 0600 "$k8s_config_path" 2>/dev/null || true
                             log_silent "Provider config extracted to: $k8s_config_path"
                         else
                             msg_warn "Could not extract provider config from image, using packaged config"
@@ -1302,6 +1326,18 @@ prepare_new_install_artifacts() {
         chmod +x "$cli_source"
         ln -sf "$cli_source" "$cli_target"
         log_silent "CLI symlink updated: $cli_target -> $cli_source"
+    fi
+
+    # The new tree was just extracted from a tarball. tar preserves the archived
+    # modes only for root, so a non-root upgrade under a restrictive umask leaves
+    # the provider's mounts unreadable to the service account it runs as, and the
+    # provider comes back up dead. No-op on Kubernetes, which delivers those files
+    # as ConfigMaps.
+    if [[ "$UPGRADE_MODE" != "kubernetes" ]] && [ -f "${NEW_DIR}/scripts/lib/path-manager.sh" ]; then
+        # shellcheck disable=SC1091
+        source "${NEW_DIR}/scripts/lib/path-manager.sh"
+        command -v ensure_provider_mounts_readable >/dev/null 2>&1 \
+            && { ensure_provider_mounts_readable "${NEW_DIR}" || true; }
     fi
 
     # MCP HTTPS cert provisioning — must run in upgrade.sh's shell (not a
