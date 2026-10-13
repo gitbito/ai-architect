@@ -37,6 +37,16 @@
 # REQUIRED: Bito API Key (https://alpha.bito.ai/home/advanced)
 bito_api_key: ""
 
+# OPTIONAL: set to "true" only for an air-gapped install on your own LLM (BYOK):
+# entitlement is then answered locally instead of by Bito. Needs
+# bito_workspace_id below and your own LLM provider key. Off when blank.
+byok_local_bypass_enabled: ""
+
+# OPTIONAL: Bito workspace ID (https://alpha.bito.ai/home/advance-settings).
+# Required when byok_local_bypass_enabled is "true", ignored otherwise. Leave
+# blank to be prompted at install time.
+bito_workspace_id: ""
+
 # OPTIONAL: Email used to register the local MCP with installed coding agents.
 # Leave blank to be prompted at install time; ignored if unused.
 user_email: ""
@@ -52,14 +62,16 @@ user_email: ""
 #     exposure: ""          # empty = auto (kind: hostport, else nodeport) | hostport | nodeport | loadbalancer
 
 git:
-  # REQUIRED: github | gitlab | bitbucket | azure-devops  (leave empty to be prompted)
+  # REQUIRED: github | gitlab | bitbucket | azure-devops | local  (leave empty to be prompted)
+  # "local" is credential-less: pre-cloned repositories are imported after
+  # installation with 'bitoarch import-repos <path>' (no token needed).
   provider: ""
   # OPTIONAL: github auth method -- personal_access_token (default) | app
   # Leave empty for personal_access_token. Set to "app" for GitHub App auth
   # (github only); then fill app_id / installation_id / private_key_path below.
   # See docs/github-app-setup.md.
   auth_type: ""
-  # REQUIRED for personal_access_token(PAT) auth.
+  # REQUIRED for personal_access_token(PAT) auth (not needed for provider: local).
   access_token: ""
   # OPTIONAL: enterprise git domain (empty for cloud).
   domain_url: ""
@@ -124,7 +136,7 @@ git:
 #   # Per-component default model overrides (optional). Each is applied to the
 #   # configured provider above; leave blank to use AI Architect's built-in
 #   # per-component defaults. Model IDs must match the configured provider's dialect.
-#   plugin_model: ""                          # model for the plugin use-case (task-analyser, ai-assistant)
+#   plugin_model: ""                          # model for the plugin use-case (task analyser, ai-assistant)
 #   plugin_provider: ""                       # provider for the plugin usecase (e.g. anthropic); empty = priority-based default
 #   ai_index_model: ""                        # model for the AI Architect indexing usecase
 
@@ -133,6 +145,13 @@ resources:
   mysql_memory: 1g
   mysql_cpu: 0.5
   cis_manager_cpu: 1.0
+  # cis-worker container memory (runs the indexer). Left commented so the
+  # shipped default in .env-bitoarch.default stays the single source of truth;
+  # uncomment to size this host explicitly. Change
+  # CIS_MODULE_BASIC_INDEX_NODE_HEAP_MB in .env-bitoarch alongside it — the
+  # usable heap ceiling is this limit minus max(25%, 1024MB), and a heap above
+  # the ceiling is capped at runtime.
+  # cis_worker_memory: 7g
 
 # OPTIONAL: Port overrides (uncomment + edit if defaults conflict)
 # ports:
@@ -164,12 +183,26 @@ insights:
     provider: jira                          # jira (only supported provider today)
     project_keys: ""                        # comma-separated string ONLY (e.g. "PROJ,INFRA") — YAML list will fail
 
+  # docs is a list (collection) of providers — enable Confluence, Google Docs,
+  # both, or none. The legacy single-object form (docs:\n    provider: ...) still
+  # loads for existing installs.
   docs:
-    enabled: ""                             # set to true to enable Confluence docs insights
-    provider: confluence                    # confluence (only supported provider today)
-    url: ""                                 # e.g. https://acme.atlassian.net (with or without /wiki — we normalize)
-    email: ""                               # defaults to ticket_tracker.email
-    api_token: ""
+    # Confluence reuses your ticket_tracker (Jira/Atlassian) credentials; just set
+    # enabled to true. url/email/api_token are optional (only for a standalone
+    # Confluence instance that differs from Jira).
+    - enabled: ""                           # set to true to enable Confluence docs
+      provider: confluence
+      url: ""                               # optional; defaults to ticket_tracker.base_url
+      email: ""                             # optional; defaults to ticket_tracker.email
+      api_token: ""                         # optional; defaults to ticket_tracker.api_token
+    # Google Docs uses your own self-hosted Google OAuth client, published to
+    # Production/Internal with documents.readonly / drive.readonly scopes.
+    - enabled: ""                           # set to true to enable Google Docs
+      provider: google_docs
+      auth_type: OAUTH2
+      client_id: ""                         # your Google OAuth client ID
+      client_secret: ""                     # your Google OAuth client secret
+      refresh_token: ""                     # long-lived Google OAuth refresh token
 
   git_lookback_days: ""                      # git insights lookback (days, default: 180, max: 730)
   jira_lookback_days: ""                     # jira insights lookback (days, default: 180, max: 730)
