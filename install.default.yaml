@@ -57,9 +57,20 @@ user_email: ""
 # live install between docker and kubernetes).
 # deployment:
 #   method: docker
-#   ingress:                # kubernetes only
-#     class: ""             # empty = bundled controller (ai-architect-nginx); set to reuse yours (nginx, traefik, ...)
-#     exposure: ""          # empty = auto (kind: hostport, else nodeport) | hostport | nodeport | loadbalancer
+#   ingress:
+#     class: ""             # kubernetes only. empty = bundled controller (ai-architect-nginx); set to reuse yours (nginx, traefik, ...)
+#     exposure: ""          # kubernetes only. empty = auto (kind: hostport, else nodeport) | hostport | nodeport | loadbalancer
+#     host: ""              # the host name developers use, with mcp_tls below; empty = the certificate's first name
+
+# OPTIONAL (Enterprise): serve MCP over HTTPS with your own certificate.
+# Full paths to the PEM certificate (with its chain) and its unencrypted key.
+# It should cover deployment.ingress.host, which becomes the MCP URL's host; a
+# host it does not cover still installs, and `bitoarch diagnose` reports it. On
+# Kubernetes the ingress serves it. Leave commented to be asked during an
+# interactive install.
+# mcp_tls:
+#   cert_file: /etc/ssl/bitoarch/fullchain.pem
+#   key_file: /etc/ssl/bitoarch/privkey.pem
 
 git:
   # REQUIRED: github | gitlab | bitbucket | azure-devops | local  (leave empty to be prompted)
