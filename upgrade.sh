@@ -1346,10 +1346,17 @@ prepare_new_install_artifacts() {
     # MCP_TRANSPORT=https so Enterprise / HTTP-only no-ops. path-manager.sh
     # sourced first because mcp-cert.sh depends on get_user_cache_dir.
     if [[ "$UPGRADE_MODE" != "kubernetes" ]] && [[ -f "${NEW_DIR}/scripts/lib/mcp-cert.sh" ]]; then
-        local _mcp_t
+        local _mcp_t _mcp_k
         _mcp_t=$(grep -E '^MCP_TRANSPORT=' "${NEW_DIR}/.env-bitoarch" 2>/dev/null \
                  | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")
         export MCP_TRANSPORT="${_mcp_t:-http}"
+        # Without the customer's certificate paths, the step below would issue an
+        # mkcert certificate in its place.
+        for _mcp_k in MCP_TLS_CERT_FILE MCP_TLS_KEY_FILE; do
+            _mcp_t=$(grep -E "^${_mcp_k}=" "${NEW_DIR}/.env-bitoarch" 2>/dev/null \
+                     | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")
+            [ -n "$_mcp_t" ] && export "${_mcp_k}=${_mcp_t}"
+        done
         if [ -f "${NEW_DIR}/scripts/lib/path-manager.sh" ]; then
             # shellcheck disable=SC1091
             source "${NEW_DIR}/scripts/lib/path-manager.sh"
