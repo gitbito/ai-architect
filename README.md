@@ -646,9 +646,40 @@ bitoarch insights set-lookback ticket-tracker 180
 
 <br />
 
+<!-- Plugins -->
+
+## 8. Plugins
+
+Plugins add optional capabilities — like answering questions in Slack or analyzing Jira tickets — on top of your self-hosted AI Architect installation. Each plugin is a self-contained service you install, configure, and remove with a single command. Installing, updating, or removing a plugin never affects the base platform, its databases, or your indexed repositories.
+
+**Available plugins**
+
+| Plugin | What it does | Integrates with |
+|---|---|---|
+| **Slack AI Assistant** (`ai-assistant`) | Ask AI Architect about your codebase, architecture, and repositories and get grounded answers directly in your Slack channels. | Slack |
+| **Bito Task Analyzer** (`task-analyzer`) | Analyzes new and updated Jira tickets and posts its findings back as comments — either on every change or on `@bito` mention. | Jira |
+
+Plugins are offered during installation once the base platform is healthy, and you can manage them any time with the `bitoarch plugin` commands:
+
+```bash
+# List available and installed plugins
+bitoarch plugin list
+
+# Install, configure, and check a plugin
+bitoarch plugin install ai-assistant
+bitoarch plugin config ai-assistant
+bitoarch plugin status
+```
+
+Full setup, configuration, and troubleshooting steps for each plugin are in the [Plugins guide](https://github.com/gitbito/ai-architect/blob/main/docs/plugins.md).
+
+---
+
+<br />
+
 <!-- Configuring AI Architect for Bito AI Code Review Agent -->
 
-## 8. Configuring AI Architect for Bito AI Code Review Agent
+## 9. Configuring AI Architect for Bito AI Code Review Agent
 
 Now that you have **AI Architect** set up, you can take your code quality to the next level by integrating it with **[Bito's AI Code Review Agent](https://bito.ai/product/ai-code-review-agent/)**. This powerful combination delivers significantly more accurate and context-aware code reviews by leveraging the deep codebase knowledge graph that AI Architect has built.
 
@@ -679,7 +710,7 @@ This enables the AI Code Review Agent to:
 
 <!-- Command reference -->
 
-## 9. Command reference
+## 10. Command reference
 
 Quick reference to CLI commands for managing Bito's AI Architect.
 
@@ -806,7 +837,7 @@ bitoarch --version
 
 <!-- Troubleshooting guide -->
 
-## 10. Troubleshooting guide
+## 11. Troubleshooting guide
 
 ```bash
 # Check all services
@@ -851,7 +882,7 @@ bitoarch update
 ---
 
 
-## 11. Upgrading AI Architect
+## 12. Upgrading AI Architect
 
 [](#overview)
 
@@ -945,7 +976,7 @@ curl -fsSL https://aiarchitect.bito.ai/install.sh | bash
 
 <!-- Support & contact -->
 
-## 12. Support & contact
+## 13. Support & contact
 
 For comprehensive information and guidance on the AI Architect, including installation and configuration instructions, please refer to our detailed **[documentation available here](https://docs.bito.ai/ai-architect/overview)**. Should you require further assistance or have any inquiries, our support team is readily available to assist you.
 
