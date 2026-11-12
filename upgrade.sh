@@ -115,7 +115,7 @@ detect_docker_compose() {
 detect_current_version() {
     local install_dir="$1"
     local versions_file="${install_dir}/versions/service-versions.json"
-    
+
     if [[ -f "$versions_file" ]]; then
         # Try with jq first
         if command -v jq >/dev/null 2>&1; then
@@ -124,7 +124,7 @@ detect_current_version() {
             # Fallback to grep/cut
             CURRENT_VERSION=$(grep -m1 '"version":' "$versions_file" 2>/dev/null | cut -d'"' -f4 || echo "unknown")
         fi
-        
+
         log_silent "Detected current version: $CURRENT_VERSION"
         return 0
     else
@@ -154,6 +154,7 @@ preserving data (MySQL, volumes, configs).
 
 Options:
   --version=VERSION    Upgrade to a specific version (default: latest)
+  --force              Upgrade even when the new release's license check refuses
   --help               Show this help message
 
 Examples:
@@ -177,7 +178,7 @@ detect_deployment_type() {
     # For 1.4.x+: file is in /usr/local or ~/.local (standard paths)
     # For older versions (1.3.x): file is in OLD_DIR
     local deployment_type_file=""
-    
+
     if [[ -f "${OLD_DIR}/.deployment-type" ]] && [[ ! -L "${OLD_DIR}/.deployment-type" ]]; then
         deployment_type_file="${OLD_DIR}/.deployment-type"
     elif [[ -f "/usr/local/etc/bitoarch/.deployment-type" ]]; then
@@ -214,6 +215,18 @@ _validate_install_dir() {
     [ -f "${BITOARCH_SYSTEM_CONFIG_DIR}/.env-bitoarch" ] && return 0
     [ -f "${HOME}/.local/bitoarch/etc/.env-bitoarch" ] && return 0
     return 1
+}
+
+# True when the installed env file says this install is offline (air-gapped).
+# Unset BITO_CONNECTIVITY follows the BYOK local bypass, the installer's rule;
+# upgrade.sh runs without the shared libraries, so the rule is repeated here.
+_upgrade_install_offline() {
+    [ -f "$OLD_ENV" ] || return 1
+    local value bypass
+    value=$(grep -m1 '^BITO_CONNECTIVITY=' "$OLD_ENV" | cut -d= -f2- | tr -d '"'"'"' ')
+    bypass=$(grep -m1 '^ENTITLEMENT_BYOK_LOCAL_BYPASS_ENABLED=' "$OLD_ENV" | cut -d= -f2- | tr -d '"'"'"' ')
+    [ -n "$value" ] || { [ "$bypass" = "true" ] && value=offline; }
+    [ "$value" = "offline" ]
 }
 
 # Resolve the customer's active .env-bitoarch: install-dir copy for 1.3.x,
@@ -290,6 +303,7 @@ _resolve_old_dir() {
 # Parse arguments
 parse_args() {
     TARGET_VERSION="latest"
+    UPGRADE_FORCE=0
 
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -305,6 +319,10 @@ parse_args() {
                 CUSTOM_URL="${1#--url=}"
                 shift
                 ;;
+            --force)
+                UPGRADE_FORCE=1
+                shift
+                ;;
             --help|-h)
                 show_usage
                 exit 0
@@ -316,7 +334,7 @@ parse_args() {
                 ;;
         esac
     done
-    
+
     # Determine OLD_DIR via the resolver cascade (--old-path → CLI symlink →
     # prompt). Validates against standard config dir so fresh Docker/K8s
     # installs (env only in /usr/local/etc/bitoarch) are accepted.
@@ -324,13 +342,13 @@ parse_args() {
 
     PARENT_DIR="$(dirname "$OLD_DIR")"
     OLD_ENV="$(_resolve_old_env)"
-    
+
     # Detect deployment type first
     detect_deployment_type
-    
+
     # Detect current version and determine upgrade mode
     detect_current_version "$OLD_DIR"
-    
+
     msg_info "Current version: $CURRENT_VERSION"
 
     if [[ "$DEPLOYMENT_TYPE" == "kubernetes" ]]; then
@@ -343,7 +361,7 @@ parse_args() {
     fi
 
     log_silent "Upgrade mode: $UPGRADE_MODE (deployment: $DEPLOYMENT_TYPE, version: $CURRENT_VERSION)"
-    
+
     if [[ -n "$CUSTOM_URL" ]] && [[ "$TARGET_VERSION" != "latest" ]]; then
         msg_error "Cannot use both --url and --version"
         exit 1
@@ -353,14 +371,14 @@ parse_args() {
 # Check prerequisites
 check_prerequisites() {
     msg_info "Checking system requirements..."
-    
+
     local missing=()
     for tool in curl tar jq; do
         if ! command -v "$tool" >/dev/null 2>&1; then
             missing+=("$tool")
         fi
     done
-    
+
     if [[ ${#missing[@]} -gt 0 ]]; then
         msg_error "Missing required tools: ${missing[*]}"
         msg_info "Install them:"
@@ -368,11 +386,11 @@ check_prerequisites() {
         msg_info "  Ubuntu: apt-get install ${missing[*]}"
         exit 1
     fi
-    
+
     # Kubernetes-specific prerequisites
     if [[ "$UPGRADE_MODE" == "kubernetes" ]]; then
         msg_info "Checking Kubernetes prerequisites..."
-        
+
         # Check kubectl
         if ! command -v kubectl >/dev/null 2>&1; then
             msg_error "kubectl not found (required for Kubernetes deployment)"
@@ -381,7 +399,7 @@ check_prerequisites() {
             msg_info "  Ubuntu: sudo apt-get install -y kubectl"
             exit 1
         fi
-        
+
         # Check helm
         if ! command -v helm >/dev/null 2>&1; then
             msg_error "Helm not found (required for Kubernetes deployment)"
@@ -390,14 +408,14 @@ check_prerequisites() {
             msg_info "  Ubuntu: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
             exit 1
         fi
-        
+
         # Check kubectl connectivity
         if ! kubectl cluster-info >/dev/null 2>&1; then
             msg_error "Cannot connect to Kubernetes cluster"
             msg_info "Please ensure kubectl is configured correctly"
             exit 1
         fi
-        
+
         log_silent "Kubernetes prerequisites verified: kubectl and helm found"
         msg_success "Kubernetes prerequisites verified"
     else
@@ -406,7 +424,7 @@ check_prerequisites() {
             msg_error "Docker is not running"
             exit 1
         fi
-        
+
         # Detect docker compose command for ALL non-k8s modes (embedded +
         # standalone use it). Previously gated on standalone only, which made
         # embedded silently fall through to `docker compose` even on hosts
@@ -418,19 +436,19 @@ check_prerequisites() {
         fi
         log_silent "Using docker compose command: $DOCKER_COMPOSE_CMD"
     fi
-    
+
     msg_success "System requirements verified"
 }
 
 # Verify old installation
 verify_old_installation() {
     msg_info "Verifying existing installation..."
-    
+
     if [[ ! -d "$OLD_DIR" ]]; then
         msg_error "Old installation not found: $OLD_DIR"
         exit 1
     fi
-    
+
     # Check for config files in multiple locations
     # For 1.4.x+: files might be in /usr/local or ~/.local (standard paths)
     # For older versions (1.3.x): files are in OLD_DIR
@@ -452,17 +470,17 @@ verify_old_installation() {
             log_silent "Config found via symlink in OLD_DIR"
         fi
     fi
-    
+
     if [[ "$config_found" == "false" ]]; then
         msg_error "Configuration not found"
         exit 1
     fi
-    
+
     if [[ ! -f "${OLD_DIR}/setup.sh" ]]; then
         msg_error "setup.sh not found in: $OLD_DIR"
         exit 1
     fi
-    
+
     msg_success "Existing installation verified"
 }
 
@@ -605,7 +623,7 @@ create_pre_upgrade_backup() {
 download_package() {
     local version="$1"
     local download_url="$2"
-    
+
     msg_info "Downloading version ${version}..." >&2
     log_silent "Download URL: $download_url"
 
@@ -624,19 +642,19 @@ download_package() {
         rm -rf "$TEMP_DOWNLOAD_DIR"
         exit 1
     fi
-    
+
     if [[ ! -f "$tarball_path" ]]; then
         msg_error "Downloaded file not created" >&2
         rm -rf "$TEMP_DOWNLOAD_DIR"
         exit 1
     fi
-    
+
     if [[ ! -s "$tarball_path" ]]; then
         msg_error "Downloaded file is empty" >&2
         rm -rf "$TEMP_DOWNLOAD_DIR"
         exit 1
     fi
-    
+
     # SCRIPT_DIR is repointed at the new tree later in the upgrade, so resolve
     # the helper from this script's own location instead.
     local _va_lib="$(dirname "${BASH_SOURCE[0]}")/lib/verify-artifact.sh"
@@ -663,7 +681,7 @@ download_package() {
 
     local size_mb=$(du -m "$tarball_path" | cut -f1)
     msg_success "Package downloaded (${size_mb}MB)" >&2
-    
+
     # Only output the path to stdout (everything else goes to stderr)
     echo "$tarball_path"
 }
@@ -672,45 +690,45 @@ download_package() {
 extract_package() {
     local tarball_path="$1"
     local version="$2"
-    
+
     msg_info "Extracting package..."
-    
+
     local timestamp=$(date +%Y%m%d_%H%M%S)
     NEW_DIR="${PARENT_DIR}/bito-ai-architect-${version}-${timestamp}"
-    
+
     mkdir -p "$NEW_DIR"
-    
+
     # Extract with strip-components=1 to remove the top-level directory from tarball
     if ! tar -xzf "$tarball_path" --strip-components=1 -C "$NEW_DIR" 2>&1 | tee -a "$LOG_FILE" >/dev/null; then
         msg_error "Extraction failed"
         rm -rf "$NEW_DIR"
         exit 1
     fi
-    
+
     # Verify critical files exist
     if [[ ! -f "${NEW_DIR}/setup.sh" ]]; then
         msg_error "Invalid package (missing setup.sh)"
         rm -rf "$NEW_DIR"
         exit 1
     fi
-    
+
     if [[ ! -f "${NEW_DIR}/bitoarch" ]]; then
         msg_error "Invalid package (missing bitoarch)"
         rm -rf "$NEW_DIR"
         exit 1
     fi
-    
+
     if [[ ! -d "${NEW_DIR}/scripts/lib" ]]; then
         msg_error "Invalid package (missing scripts/lib directory)"
         rm -rf "$NEW_DIR"
         exit 1
     fi
-    
+
     # Make scripts executable
     chmod +x "${NEW_DIR}/setup.sh"
     chmod +x "${NEW_DIR}/bitoarch"
     [[ -f "${NEW_DIR}/scripts/upgrade.sh" ]] && chmod +x "${NEW_DIR}/scripts/upgrade.sh"
-    
+
     msg_success "Package extracted to: $NEW_DIR"
 }
 
@@ -720,12 +738,12 @@ extract_package() {
 merge_new_env_configs() {
     local env_file="$1"
     local default_env_file="${NEW_DIR}/.env-bitoarch.default"
-    
+
     if [[ ! -f "$default_env_file" ]]; then
         log_silent "Skipping env config merge - default file not found: $default_env_file"
         return 0
     fi
-    
+
     if [[ ! -f "$env_file" ]]; then
         log_silent "Skipping env config merge - env file not found: $env_file"
         return 0
@@ -771,7 +789,7 @@ patch_env_with_images() {
 
     local images_exist=false
     grep -q "CIS_CONFIG_IMAGE=" "$env_file" 2>/dev/null && images_exist=true
-    
+
     # Read versions and image bases from NEW version's versions/service-versions.json
     local cis_config_version cis_config_image_base
     local cis_manager_version cis_manager_image_base
@@ -784,16 +802,16 @@ patch_env_with_images() {
     if command -v jq >/dev/null 2>&1 && [[ -f "$versions_file" ]]; then
         cis_config_version=$(jq -r '.services."cis-config".version' "$versions_file" 2>/dev/null || echo "latest")
         cis_config_image_base=$(jq -r '.services."cis-config".image' "$versions_file" 2>/dev/null || echo "docker.io/bitoai/cis-config")
-        
+
         cis_manager_version=$(jq -r '.services."cis-manager".version' "$versions_file" 2>/dev/null || echo "latest")
         cis_manager_image_base=$(jq -r '.services."cis-manager".image' "$versions_file" 2>/dev/null || echo "docker.io/bitoai/cis-manager")
-        
+
         cis_provider_version=$(jq -r '.services."cis-provider".version' "$versions_file" 2>/dev/null || echo "latest")
         cis_provider_image_base=$(jq -r '.services."cis-provider".image' "$versions_file" 2>/dev/null || echo "docker.io/bitoai/xmcp")
-        
+
         cis_tracker_version=$(jq -r '.services."cis-tracker".version' "$versions_file" 2>/dev/null || echo "latest")
         cis_tracker_image_base=$(jq -r '.services."cis-tracker".image' "$versions_file" 2>/dev/null || echo "docker.io/bitoai/cis-tracking")
-        
+
         mysql_version=$(jq -r '.services."mysql".version' "$versions_file" 2>/dev/null || echo "8.0")
         mysql_image_base=$(jq -r '.services."mysql".image' "$versions_file" 2>/dev/null || echo "mysql")
 
@@ -832,7 +850,7 @@ patch_env_with_images() {
                "$temporal_image_base:$temporal_version" \
                "$cis_worker_image_base:$cis_worker_version"; do
         case "$_iv" in
-            null:*|*:null|:*|*:|*[[:space:]]*) 
+            null:*|*:null|:*|*:|*[[:space:]]*)
                 msg_error "Unusable image reference '"'"'${_iv}'"'"' from ${versions_file} -- aborting before the env file is rewritten"
                 return 1
                 ;;
@@ -869,7 +887,7 @@ TEMPORAL_IMAGE=${temporal_image_base}:${temporal_version}
 CIS_WORKER_IMAGE=${cis_worker_image_base}:${cis_worker_version}
 EOF
     fi
-    
+
     # Also update VERSION variables if they're empty
     if grep -q "^CIS_CONFIG_VERSION=$" "$env_file" 2>/dev/null; then
         sed -i.bak "s/^CIS_CONFIG_VERSION=$/CIS_CONFIG_VERSION=${cis_config_version}/" "$env_file"
@@ -883,10 +901,10 @@ EOF
     if grep -q "^CIS_TRACKER_VERSION=$" "$env_file" 2>/dev/null; then
         sed -i.bak "s/^CIS_TRACKER_VERSION=$/CIS_TRACKER_VERSION=${cis_tracker_version}/" "$env_file"
     fi
-    
+
     # Clean up sed backup files
     rm -f "${env_file}.bak"
-    
+
     log_silent "Patched env with images: config=${cis_config_version}, manager=${cis_manager_version}, provider=${cis_provider_version}, tracker=${cis_tracker_version}, mysql=${mysql_version}, temporal=${temporal_version}, worker=${cis_worker_version}"
 }
 
@@ -916,7 +934,7 @@ _migrate_docs_provider_toggles() {
 # Migrate configuration
 migrate_config() {
     msg_info "Migrating configuration..."
-    
+
     # Backup old .env-bitoarch before migration
     if [ -f "${OLD_DIR}/.env-bitoarch" ]; then
         # Determine standard backup directory
@@ -926,11 +944,11 @@ migrate_config() {
         else
             backup_var_dir="${HOME}/.local/bitoarch/var"
         fi
-        
+
         local backup_dir="${backup_var_dir}/backups/configs/env"
         local timestamp=$(date +%Y%m%d_%H%M%S)
         local backup_file="${backup_dir}/.env-bitoarch.backup.${timestamp}"
-        
+
         # Create backup directory
         mkdir -p "$backup_dir" 2>/dev/null || {
             if command -v sudo >/dev/null 2>&1; then
@@ -938,7 +956,7 @@ migrate_config() {
                 sudo chown -R "$USER:$(id -gn)" "$backup_dir"
             fi
         }
-        
+
         # Create backup
         if cp "${OLD_DIR}/.env-bitoarch" "$backup_file" 2>>"${LOG_FILE:-/dev/null}"; then
             log_silent "Config backup saved to: $backup_file"
@@ -946,25 +964,25 @@ migrate_config() {
         else
             msg_warn "Could not create config backup (non-critical)"
         fi
-        
+
         # Rotate old backups (keep latest 5)
         local retention=5
         local backup_pattern="${backup_dir}/.env-bitoarch.backup.*"
         local existing_backups=$(ls -t $backup_pattern 2>/dev/null | wc -l | tr -d ' ')
-        
+
         if [ "$existing_backups" -gt "$retention" ]; then
             ls -t $backup_pattern 2>/dev/null | tail -n +$((retention + 1)) | xargs rm -f 2>/dev/null || true
             log_silent "Rotated old backups (keeping latest ${retention})"
         fi
     fi
-    
+
     NEW_ENV="${NEW_DIR}/.env-bitoarch"
-    
+
     # Determine config source directory
     # For 1.4.x+: configs are in /usr/local or ~/.local (standard paths)
     # For older versions (1.3.x): configs are regular files in OLD_DIR
     local config_source="$OLD_DIR"
-    
+
     if [[ -f "${OLD_DIR}/.env-bitoarch" ]] && [[ ! -L "${OLD_DIR}/.env-bitoarch" ]]; then
         config_source="$OLD_DIR"
     elif [[ -f "/usr/local/etc/bitoarch/.env-bitoarch" ]]; then
@@ -976,7 +994,7 @@ migrate_config() {
     fi
 
     log_silent "Config source: $config_source"
-    
+
     # Copy env files from detected source
     [[ -f "${config_source}/.env-bitoarch" ]] && cp "${config_source}/.env-bitoarch" "${NEW_DIR}/.env-bitoarch"
     [[ -f "${config_source}/.env-llm-bitoarch" ]] && cp "${config_source}/.env-llm-bitoarch" "${NEW_DIR}/.env-llm-bitoarch"
@@ -997,7 +1015,7 @@ migrate_config() {
     else
         echo "docker-compose" > "${NEW_DIR}/.deployment-type"
     fi
-    
+
     # Merge new config keys from default env file (adds missing keys with default values)
     if [[ -f "$NEW_ENV" ]]; then
         merge_new_env_configs "$NEW_ENV"
@@ -1587,9 +1605,9 @@ stop_old_version() {
 # Stop old version - STANDALONE MODE (direct docker commands)
 stop_old_version_standalone() {
     log_silent "Stopping old version services..."
-    
+
     local old_containers=$(docker ps --filter "name=ai-architect" --format "{{.Names}}" 2>/dev/null)
-    
+
     if [[ -n "$old_containers" ]]; then
         log_silent "Stopping old containers..."
         log_silent "Containers to stop: $old_containers"
@@ -1648,18 +1666,18 @@ upgrade_kubernetes() {
         msg_info "This doesn't appear to be a Kubernetes deployment"
         exit 1
     fi
-    
+
     cd "$NEW_DIR" || exit 1
-    
+
     # Copy deployment type marker
     echo "kubernetes" > "${NEW_DIR}/.deployment-type"
-    
+
     # Regenerate Helm values from migrated .env file
     msg_info "Generating Helm values from configuration..."
-    
+
     # Set SCRIPT_DIR for values-generator.sh
     export SCRIPT_DIR="$NEW_DIR"
-    
+
     # CRITICAL: Determine standard config directory BEFORE sourcing path-manager.sh
     # This prevents path-manager's auto init_paths from detecting "legacy" layout
     local standard_config_dir
@@ -1675,7 +1693,7 @@ upgrade_kubernetes() {
             standard_config_dir="${HOME}/.local/bitoarch/etc"
         fi
     fi
-    
+
     # Set path variables for values-generator.sh
     export BITOARCH_CONFIG_DIR="$standard_config_dir"
     # Also set VAR_DIR based on the chosen standard config path
@@ -1684,7 +1702,7 @@ upgrade_kubernetes() {
     else
         export BITOARCH_VAR_DIR="${HOME}/.local/bitoarch/var"
     fi
-    
+
     # NOTE: We don't source path-manager.sh here for K8s upgrades because:
     # 1. We don't use any of its functions (no get_config_dir calls)
     # 2. It would auto-call init_paths and override our BITOARCH_CONFIG_DIR setting
@@ -1737,7 +1755,7 @@ upgrade_kubernetes() {
         msg_error "The values-generator.sh script completed but didn't create the output file"
         exit 1
     fi
-    
+
     msg_info "Using values file: $values_file"
 
     # Multi-node static NFS: ensure the shared PVs exist before helm upgrade
@@ -1751,7 +1769,7 @@ upgrade_kubernetes() {
     # Perform Helm upgrade
     msg_info "Upgrading Helm release..."
     msg_info "This may take 2-5 minutes (pulling images, updating pods)..."
-    
+
     if helm upgrade bitoarch "${NEW_DIR}/helm-bitoarch" \
         --namespace "$namespace" \
         --values "$values_file" \
@@ -1850,37 +1868,37 @@ upgrade_kubernetes() {
 # Check Kubernetes deployment status
 check_kubernetes_services() {
     msg_info "Verifying Kubernetes deployment..."
-    
+
     local namespace="bito-ai-architect"
-    
+
     # Wait for pods to be ready
     local max_attempts=30
     local attempt=1
-    
+
     while [ $attempt -le $max_attempts ]; do
         local ready_pods=$(kubectl get pods -n "$namespace" -o jsonpath='{range .items[?(@.status.conditions[?(@.type=="Ready")].status=="True")]}{.metadata.name}{"\n"}{end}' 2>/dev/null | wc -l | xargs)
         local total_pods=$(kubectl get pods -n "$namespace" --no-headers 2>/dev/null | wc -l | xargs)
-        
+
         if [ "$ready_pods" -eq "$total_pods" ] && [ "$total_pods" -gt 0 ]; then
             break
         fi
-        
+
         if [ $attempt -eq 1 ]; then
             msg_info "Waiting for pods to be ready..."
         fi
-        
+
         echo -n "."
         sleep 10
         attempt=$((attempt + 1))
     done
     echo ""
-    
+
     if [ $attempt -gt $max_attempts ]; then
         msg_warn "Timeout waiting for all pods to be ready"
     else
         msg_success "All pods are ready ($ready_pods/$total_pods)"
     fi
-    
+
     # Show pod status
     echo ""
     kubectl get pods -n "$namespace" 2>/dev/null | grep -v "temporal" | head -11
@@ -2040,25 +2058,25 @@ run_mysql_init_prerequisites() {
 # Run database migrations from NEW version's scripts
 run_database_migrations() {
     log_silent "Running database migrations from new version..."
-    
+
     # Source the NEW version's sql-migration-manager.sh
     local migration_script="${NEW_DIR}/scripts/sql-migration-manager.sh"
-    
+
     if [[ ! -f "$migration_script" ]]; then
         log_silent "Migration script not found, skipping database migrations"
         return 0
     fi
-    
+
     # Export DEPLOYMENT_TYPE for migration script
     export DEPLOYMENT_TYPE
-    
+
     # Source the migration script (which sources setup-utils.sh for print_* functions)
     # shellcheck disable=SC1090
     source "$migration_script"
-    
+
     # Update SQL_MIGRATION_PLATFORM_DIR to point to NEW installation
     SQL_MIGRATION_PLATFORM_DIR="$NEW_DIR"
-    
+
     # Run migrations (stdout/stderr → LOG_FILE; terminal stays quiet)
     if run_upgrade_migrations >> "$LOG_FILE" 2>&1; then
         log_silent "Database migrations completed"
@@ -2066,7 +2084,7 @@ run_database_migrations() {
         msg_error "Database migrations failed"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -2176,6 +2194,18 @@ main() {
     # Pre-flight checks
     check_prerequisites
     verify_old_installation
+
+    # An offline install never downloads from Bito: the package is copied in.
+    # Refused before the backup, so nothing is done for an upgrade that cannot run.
+    if [[ -z "$CUSTOM_URL" ]] && _upgrade_install_offline; then
+        case "$DOWNLOAD_BASE_URL" in
+            *://bito.ai|*://bito.ai[/:]*|*://*.bito.ai|*://*.bito.ai[/:]*)
+                msg_error "This install is offline, so the upgrade does not download from Bito."
+                msg_info "Copy the release package to this machine and run: bitoarch upgrade --url=file:///path/to/bito-ai-architect-<version>.tar.gz"
+                exit 1
+                ;;
+        esac
+    fi
     check_indexing_not_running
 
     if [[ -f "${OLD_DIR}/versions/service-versions.json" ]]; then
@@ -2185,10 +2215,6 @@ main() {
             exit 0
         fi
     fi
-
-    # Restore point while the old stack is still up (indexing already confirmed
-    # quiet above, so the index-data snapshot is stable).
-    create_pre_upgrade_backup
 
     # Download and extract
     local tarball_path
@@ -2209,6 +2235,22 @@ main() {
     fi
 
     extract_package "$tarball_path" "$version_name"
+
+    # A release that enforces licensing checks this install's license with its
+    # own guard, before anything is applied, and refuses without a usable one.
+    if [[ -f "${NEW_DIR}/scripts/lib/license-upgrade-guard.sh" ]]; then
+        # shellcheck source=/dev/null
+        source "${NEW_DIR}/scripts/lib/license-upgrade-guard.sh"
+        if ! upgrade_license_guard "$NEW_DIR" "$UPGRADE_FORCE" "$OLD_ENV"; then
+            rm -rf "$NEW_DIR"
+            exit 1
+        fi
+    fi
+
+    # Restore point while the old stack is still up (indexing already confirmed
+    # quiet above, so the index-data snapshot is stable). After the license
+    # guard, so a refused upgrade never waits for one.
+    ( create_pre_upgrade_backup ) || { rm -rf "$NEW_DIR"; exit 1; }
 
     # Configure and deploy
     migrate_config

@@ -37,14 +37,26 @@
 # REQUIRED: Bito API Key (https://alpha.bito.ai/home/advanced)
 bito_api_key: ""
 
+# OPTIONAL: online | offline. "online" when this machine can reach Bito: the
+# license is fetched and renewed automatically. "offline" for an air-gapped
+# install: no connection to Bito is made, and the license key below comes from
+# Bito by email or USB. Leave blank to be asked at install time; an unattended
+# install (AUTO_SETUP, or no terminal) left blank goes online.
+connectivity: ""
+
+# OPTIONAL: the Bito-signed license key for an offline install (one line,
+# starting with BITO1.). Get one with 'bitoarch license request'. Online
+# installs leave it blank.
+license_key: ""
+
 # OPTIONAL: set to "true" only for an air-gapped install on your own LLM (BYOK):
 # entitlement is then answered locally instead of by Bito. Needs
 # bito_workspace_id below and your own LLM provider key. Off when blank.
 byok_local_bypass_enabled: ""
 
 # OPTIONAL: Bito workspace ID (https://alpha.bito.ai/home/advance-settings).
-# Required when byok_local_bypass_enabled is "true", ignored otherwise. Leave
-# blank to be prompted at install time.
+# Required for an offline install (or when byok_local_bypass_enabled is "true"),
+# ignored otherwise. Leave blank to be prompted at install time.
 bito_workspace_id: ""
 
 # OPTIONAL: Email used to register the local MCP with installed coding agents.
